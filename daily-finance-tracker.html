@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.min.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
@@ -2541,6 +2542,9 @@
                 <li class="nav-item">
                     <a href="#" class="nav-link" onclick="showCombinationReport(event)">🧾 Combination Report</a>
                 </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="showCsvImport(event)">🏦 PDF Import</a>
+                </li>
                 <li class="nav-item dropdown">
                     <a href="#" class="nav-link">⚙️ Settings</a>
                     <div class="dropdown-content">
@@ -3378,7 +3382,8 @@
             SALARIES: 'salaryTemplates', 
             BANK_EXPENSES: 'bankExpenseTemplates',
             DAILY_DATA: 'dailyFinanceData',
-            RENTALS: 'rentalTemplates'
+            RENTALS: 'rentalTemplates',
+            BANK_STATEMENTS: 'bankStatementTransactions'
         };
 
         // Night Section (and cigarette/ beer settings for these emails) share one Firestore subtree.
@@ -5112,6 +5117,12 @@
             showCombinationReportSection();
         }
 
+        function showCsvImport(event) {
+            setActiveNavLink(event.target);
+            hideAllSections();
+            showCsvImportSection();
+        }
+
         function showExpenseSettings(event) {
             setActiveNavLink(event.target);
             hideAllSections();
@@ -6795,6 +6806,741 @@
         }
         // ============ END CSV IMPORT/EXPORT FUNCTIONS ============
 
+        // ============ PDF IMPORT FOR BANK STATEMENT ============
+        let parsedBankStatementRows = [];
+        let bankStatementData = [];
+        let activeBankPdfFileName = '';
+        let activePdfWorkerSrc = '';
+        let latestImportedBankRows = [];
+
+        function normalizeDateInput(rawDate) {
+            const value = String(rawDate || '').trim();
+            if (!value) return '';
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+                const [d, m, y] = value.split('/');
+                return `${y}-${m}-${d}`;
+            }
+
+            if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
+                const [d, m, y] = value.split('-');
+                return `${y}-${m}-${d}`;
+            }
+
+            const parsed = new Date(value);
+            if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+            return '';
+        }
+
+        function parseCurrency(value) {
+            const cleaned = String(value || '')
+                .replace(/[^0-9.-]/g, '')
+                .trim();
+            const parsed = parseFloat(cleaned);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function parseBankAmount(amountText, description) {
+            const raw = String(amountText || '').toUpperCase().replace(/\s+/g, '');
+            if (!raw) return 0;
+            let sign = 0;
+            if (raw.includes('DR') || raw.startsWith('-')) sign = -1;
+            if (raw.includes('CR') || raw.startsWith('+')) sign = 1;
+
+            if (sign === 0) {
+                const desc = String(description || '').toLowerCase();
+                const creditHints = ['cr adv', 'deposit', 'cdm deposit', 'credit'];
+                const isCredit = creditHints.some(token => desc.includes(token));
+                sign = isCredit ? 1 : -1;
+            }
+            const num = parseCurrency(raw.replace(/CR|DR/g, ''));
+            return sign * num;
+        }
+
+        async function ensurePdfParserLoaded() {
+            if (window.pdfjsLib) return window.pdfjsLib;
+            const moduleSources = [
+                { lib: './vendor/pdfjs/pdf.mjs', worker: './vendor/pdfjs/pdf.worker.mjs' },
+                { lib: '/vendor/pdfjs/pdf.mjs', worker: '/vendor/pdfjs/pdf.worker.mjs' },
+                { lib: './node_modules/pdfjs-dist/build/pdf.mjs', worker: './node_modules/pdfjs-dist/build/pdf.worker.mjs' },
+                { lib: '/node_modules/pdfjs-dist/build/pdf.mjs', worker: '/node_modules/pdfjs-dist/build/pdf.worker.mjs' },
+                { lib: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs', worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs' }
+            ];
+
+            for (const source of moduleSources) {
+                try {
+                    const loaded = await import(source.lib);
+                    const pdfLib = loaded?.pdfjsLib || loaded;
+                    if (pdfLib && typeof pdfLib.getDocument === 'function') {
+                        window.pdfjsLib = pdfLib;
+                        activePdfWorkerSrc = source.worker;
+                        return window.pdfjsLib;
+                    }
+                } catch (error) {
+                    console.warn('PDF parser load attempt failed:', error.message || error);
+                }
+            }
+
+            throw new Error('PDF parser library failed to load. Please run the app with internet OR via local server (npm start).');
+        }
+
+        function updatePdfParserStatus(state, message) {
+            const badge = document.getElementById('pdfParserStatusBadge');
+            if (!badge) return;
+
+            const styles = {
+                ready: {
+                    label: `PDF Parser: Ready${message ? ` (${message})` : ''}`,
+                    bg: '#ecfdf5',
+                    color: '#166534',
+                    border: '#86efac'
+                },
+                loading: {
+                    label: 'PDF Parser: Loading...',
+                    bg: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '#93c5fd'
+                },
+                failed: {
+                    label: `PDF Parser: Failed${message ? ` (${message})` : ''}`,
+                    bg: '#fef2f2',
+                    color: '#991b1b',
+                    border: '#fca5a5'
+                }
+            };
+
+            const ui = styles[state] || styles.loading;
+            badge.textContent = ui.label;
+            badge.style.background = ui.bg;
+            badge.style.color = ui.color;
+            badge.style.borderColor = ui.border;
+        }
+
+        async function initializePdfParserStatus() {
+            try {
+                updatePdfParserStatus('loading');
+                await ensurePdfParserLoaded();
+                const source = activePdfWorkerSrc.includes('/vendor/pdfjs/')
+                    ? 'local'
+                    : activePdfWorkerSrc.startsWith('http')
+                        ? 'cdn'
+                        : 'fallback';
+                updatePdfParserStatus('ready', source);
+            } catch (error) {
+                console.error('PDF parser init failed:', error);
+                updatePdfParserStatus('failed', 'check server');
+            }
+        }
+
+        async function extractPdfText(file) {
+            await ensurePdfParserLoaded();
+            const workerSrc = activePdfWorkerSrc || './vendor/pdfjs/pdf.worker.mjs';
+            if (window.pdfjsLib?.GlobalWorkerOptions) {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+            }
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+
+            const pageTexts = [];
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const lines = [];
+                let currentY = null;
+                let currentLine = [];
+                const tolerance = 2.5;
+
+                textContent.items.forEach((item) => {
+                    const y = item.transform?.[5] || 0;
+                    if (currentY === null || Math.abs(y - currentY) <= tolerance) {
+                        currentLine.push(item.str);
+                        currentY = currentY === null ? y : currentY;
+                    } else {
+                        lines.push(currentLine.join(' ').replace(/\s+/g, ' ').trim());
+                        currentLine = [item.str];
+                        currentY = y;
+                    }
+                });
+                if (currentLine.length) {
+                    lines.push(currentLine.join(' ').replace(/\s+/g, ' ').trim());
+                }
+                pageTexts.push(lines.join('\n'));
+            }
+            return pageTexts.join('\n');
+        }
+
+        function parseBankStatementTransactions(text) {
+            const lines = String(text || '').split('\n').map(line => line.trim()).filter(Boolean);
+            const transactions = [];
+            const txRegex = /^(\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)\s+(.+?)\s+([+-]?\d[\d,]*\.\d{2}(?:\s*(?:CR|DR))?)(?:\s+([+-]?\d[\d,]*\.\d{2}))?$/i;
+            const noiseTokens = [
+                'hong leong bizone current account statement',
+                'protected by pidm',
+                'dilindungi oleh pidm',
+                'page no /',
+                'statement period /',
+                'branch / cawangan',
+                'tel no /',
+                'date transaction description',
+                'tarikh deskripsi transaksi',
+                'account type',
+                'balance from previous statement',
+                'important notices',
+                'total withdrawals',
+                'total deposits',
+                'closing balance',
+                'restoran desa steamboat',
+                'a/c no / no akaun',
+                'tempoh penyataan'
+            ];
+            const footerStartTokens = [
+                'important notices',
+                'items and balances shown above',
+                'the bank\'s base rate',
+                'starting july',
+                'effective ',
+                'for more details on your account transactions',
+                'sila maklumkan bank',
+                'hubungi 03 7626 8899'
+            ];
+            const descriptionCutTokens = [
+                'hong leong bank berhad',
+                'date / tarikh',
+                'important notices',
+                'the items and balances shown above',
+                'items and balances shown above'
+            ];
+            const cleanTransactionDescription = (description) => {
+                let normalized = String(description || '').replace(/\s+/g, ' ').trim();
+                if (!normalized) return '';
+                const lower = normalized.toLowerCase();
+                let cutAt = -1;
+                descriptionCutTokens.forEach((token) => {
+                    const idx = lower.indexOf(token);
+                    if (idx !== -1 && (cutAt === -1 || idx < cutAt)) cutAt = idx;
+                });
+                if (cutAt !== -1) {
+                    normalized = normalized.slice(0, cutAt).trim();
+                }
+                return normalized;
+            };
+            const isNoiseLine = (line) => {
+                const lower = String(line || '').toLowerCase().trim();
+                if (!lower) return true;
+                if (noiseTokens.some(token => lower.includes(token))) return true;
+                if (/^--\s*\d+\s+of\s+\d+\s*--$/i.test(lower)) return true;
+                if (/^\d{11}_\d{2}\s+\d+$/i.test(lower)) return true;
+                return false;
+            };
+            let inFooterSection = false;
+
+            lines.forEach((line) => {
+                const lowerLine = line.toLowerCase();
+                if (footerStartTokens.some(token => lowerLine.includes(token))) {
+                    inFooterSection = true;
+                    return;
+                }
+                if (inFooterSection) return;
+
+                const match = line.match(txRegex);
+                if (match) {
+                    const date = normalizeDateInput(match[1]);
+                    const description = cleanTransactionDescription(match[2]);
+                    const amount = parseBankAmount(match[3], description);
+                    const balance = parseCurrency(match[4]);
+
+                    if (!date || !description || !Number.isFinite(amount)) return;
+                    transactions.push({
+                        transactionDate: date,
+                        description,
+                        amount,
+                        balance,
+                        rawLine: line
+                    });
+                    return;
+                }
+
+                if (!transactions.length) return;
+                if (isNoiseLine(line)) return;
+                if (/^\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?/.test(line)) return;
+
+                // Continuation line for multiline bank descriptions (include refs/payee/info lines).
+                const last = transactions[transactions.length - 1];
+                const continuation = cleanTransactionDescription(line);
+                if (!continuation) return;
+                last.description = `${last.description} ${continuation}`.replace(/\s+/g, ' ').trim();
+            });
+
+            return transactions;
+        }
+
+        function resetBankPdfPreview() {
+            const tbody = document.getElementById('bankPdfPreviewTableBody');
+            const previewWrap = document.getElementById('bankPdfPreviewSection');
+            const fileNameLabel = document.getElementById('bankPdfSelectedFile');
+            const importBtn = document.getElementById('bankPdfImportBtn');
+            const fileInput = document.getElementById('bankPdfFileInput');
+
+            parsedBankStatementRows = [];
+            activeBankPdfFileName = '';
+            if (tbody) tbody.innerHTML = '';
+            if (previewWrap) previewWrap.style.display = 'none';
+            if (fileNameLabel) fileNameLabel.textContent = '';
+            if (importBtn) importBtn.disabled = true;
+            if (fileInput) fileInput.value = '';
+        }
+
+        async function handleBankPdfSelection(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert('❌ Please select a PDF file.');
+                return;
+            }
+
+            try {
+                updatePdfParserStatus('loading');
+                const text = await extractPdfText(file);
+                const source = activePdfWorkerSrc.includes('/vendor/pdfjs/')
+                    ? 'local'
+                    : activePdfWorkerSrc.startsWith('http')
+                        ? 'cdn'
+                        : 'fallback';
+                updatePdfParserStatus('ready', source);
+                const rows = parseBankStatementTransactions(text);
+                if (!rows.length) {
+                    alert('❌ No transactions detected in this PDF. Please check statement format.');
+                    resetBankPdfPreview();
+                    return;
+                }
+
+                parsedBankStatementRows = rows;
+                activeBankPdfFileName = file.name;
+                renderBankPdfPreview(rows);
+
+                const fileNameLabel = document.getElementById('bankPdfSelectedFile');
+                const importBtn = document.getElementById('bankPdfImportBtn');
+                if (fileNameLabel) fileNameLabel.textContent = `Selected: ${file.name}`;
+                if (importBtn) importBtn.disabled = false;
+
+                alert(`✅ PDF parsed successfully. ${rows.length} transaction(s) ready to import.`);
+            } catch (error) {
+                console.error('Bank statement PDF parse failed:', error);
+                alert(`❌ Failed to parse PDF: ${error.message}`);
+                updatePdfParserStatus('failed', 'not available');
+                resetBankPdfPreview();
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        function renderBankPdfPreview(rows) {
+            const tbody = document.getElementById('bankPdfPreviewTableBody');
+            const previewWrap = document.getElementById('bankPdfPreviewSection');
+            if (!tbody || !previewWrap) return;
+
+            tbody.innerHTML = rows.map(row => {
+                return `
+                    <tr>
+                        <td>${row.transactionDate}</td>
+                        <td style="text-align: left;">${row.description}</td>
+                        <td>${row.amount.toFixed(2)}</td>
+                        <td>${row.balance.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            previewWrap.style.display = 'block';
+        }
+
+        function renderLatestImportedBankRows(rows) {
+            const section = document.getElementById('bankLatestImportSection');
+            const tbody = document.getElementById('bankLatestImportTableBody');
+            if (!section || !tbody) return;
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                section.style.display = 'none';
+                tbody.innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => `
+                <tr>
+                    <td>${row.transactionDate || '-'}</td>
+                    <td style="text-align: left;">${row.description || '-'}</td>
+                    <td>${Number.isFinite(parseFloat(row.amount)) ? parseFloat(row.amount).toFixed(2) : '-'}</td>
+                    <td>${Number.isFinite(parseFloat(row.balance)) ? parseFloat(row.balance).toFixed(2) : '-'}</td>
+                    <td style="font-weight: 600; color: ${
+                        row.status === 'imported' ? '#166534' :
+                        row.status === 'skipped' ? '#9a3412' : '#991b1b'
+                    };">
+                        ${row.status || '-'}
+                    </td>
+                </tr>
+            `).join('');
+            section.style.display = 'block';
+        }
+
+        async function loadBankStatementData() {
+            try {
+                bankStatementData = await getFromFirestore(COLLECTIONS.BANK_STATEMENTS);
+            } catch (error) {
+                console.error('Unable to load bank statement transactions:', error);
+                bankStatementData = JSON.parse(localStorage.getItem('bankStatementTransactions')) || [];
+            }
+        }
+
+        function renderBankStatementHistoryTable(rows) {
+            const tbody = document.getElementById('bankStatementHistoryBody');
+            const empty = document.getElementById('noBankStatementHistoryMessage');
+            if (!tbody || !empty) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                updateBankStatementHistorySummary([]);
+                return;
+            }
+
+            empty.style.display = 'none';
+            const sorted = [...rows].sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+            tbody.innerHTML = sorted.map((row) => `
+                <tr>
+                    <td>${formatDate(row.transactionDate)}</td>
+                    <td style="text-align: left;">${row.description || '-'}</td>
+                    <td style="color: ${(parseFloat(row.amount || 0) >= 0) ? '#16a34a' : '#dc2626'}; font-weight: 600;">
+                        ${parseFloat(row.amount || 0).toFixed(2)}
+                    </td>
+                    <td>${parseFloat(row.balance || 0).toFixed(2)}</td>
+                    <td>${row.sourceFileName || '-'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-edit" onclick="editBankStatementRecord('${row.id || ''}')">✏️</button>
+                            <button class="btn-action btn-delete" onclick="deleteBankStatementRecord('${row.id || ''}')">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            updateBankStatementHistorySummary(sorted);
+        }
+
+        function updateBankStatementHistorySummary(rows) {
+            const totalCreditsEl = document.getElementById('bankStatementTotalCredits');
+            const totalDebitsEl = document.getElementById('bankStatementTotalDebits');
+            const netEl = document.getElementById('bankStatementNet');
+            const countEl = document.getElementById('bankStatementCount');
+            if (!totalCreditsEl || !totalDebitsEl || !netEl || !countEl) return;
+
+            const totals = rows.reduce((acc, row) => {
+                const amount = parseFloat(row.amount || 0);
+                if (amount >= 0) acc.credits += amount;
+                else acc.debits += Math.abs(amount);
+                acc.net += amount;
+                return acc;
+            }, { credits: 0, debits: 0, net: 0 });
+
+            totalCreditsEl.textContent = totals.credits.toFixed(2);
+            totalDebitsEl.textContent = totals.debits.toFixed(2);
+            netEl.textContent = totals.net.toFixed(2);
+            countEl.textContent = String(rows.length);
+        }
+
+        function getFilteredBankStatementRows() {
+            const monthFilter = document.getElementById('bankStatementMonthFilter')?.value || '';
+            const search = (document.getElementById('bankStatementSearchFilter')?.value || '').toLowerCase().trim();
+
+            return (bankStatementData || []).filter((row) => {
+                const rowMonth = String(row.transactionDate || '').slice(0, 7);
+                const monthMatch = !monthFilter || rowMonth === monthFilter;
+                if (!monthMatch) return false;
+                if (!search) return true;
+
+                const haystack = [
+                    row.transactionDate,
+                    row.description,
+                    row.amount,
+                    row.balance,
+                    row.sourceFileName
+                ].join(' ').toLowerCase();
+                return haystack.includes(search);
+            });
+        }
+
+        function filterBankStatementHistory() {
+            renderBankStatementHistoryTable(getFilteredBankStatementRows());
+        }
+
+        function clearBankStatementFilters() {
+            const monthFilter = document.getElementById('bankStatementMonthFilter');
+            const searchFilter = document.getElementById('bankStatementSearchFilter');
+            if (monthFilter) monthFilter.value = '';
+            if (searchFilter) searchFilter.value = '';
+            filterBankStatementHistory();
+        }
+
+        function closeBankStatementEditModal() {
+            const modal = document.getElementById('bankStatementEditModal');
+            if (modal) modal.remove();
+        }
+
+        function editBankStatementRecord(recordId) {
+            const row = (bankStatementData || []).find((item) => item.id === recordId);
+            if (!row) {
+                alert('Transaction not found.');
+                return;
+            }
+
+            closeBankStatementEditModal();
+
+            const safeDescription = String(row.description || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            const modal = document.createElement('div');
+            modal.id = 'bankStatementEditModal';
+            modal.className = 'edit-modal';
+            modal.innerHTML = `
+                <div class="edit-modal-content">
+                    <h2>✏️ Edit Bank Transaction</h2>
+                    <input type="hidden" id="bankStatementEditRecordId" value="${row.id || ''}">
+                    <div class="edit-form-group">
+                        <label>Transaction Date</label>
+                        <input type="date" id="bankStatementEditDate" value="${row.transactionDate || ''}">
+                    </div>
+                    <div class="edit-form-group">
+                        <label>Description</label>
+                        <input type="text" id="bankStatementEditDescription" value="${safeDescription}" placeholder="Transaction description">
+                    </div>
+                    <div class="edit-form-group">
+                        <label>Amount (negative for debit)</label>
+                        <input type="number" id="bankStatementEditAmount" value="${parseFloat(row.amount || 0).toFixed(2)}" step="0.01">
+                    </div>
+                    <div class="edit-form-group">
+                        <label>Balance</label>
+                        <input type="number" id="bankStatementEditBalance" value="${parseFloat(row.balance || 0).toFixed(2)}" step="0.01">
+                    </div>
+                    <div class="edit-form-group">
+                        <label>Source File</label>
+                        <input type="text" id="bankStatementEditSourceFile" value="${String(row.sourceFileName || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" placeholder="Source PDF file name">
+                    </div>
+                    <div class="edit-modal-buttons">
+                        <button class="btn btn-success" onclick="saveBankStatementRecordFromModal()">💾 Save Changes</button>
+                        <button class="btn btn-secondary" onclick="closeBankStatementEditModal()">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function saveBankStatementRecordFromModal() {
+            const recordId = document.getElementById('bankStatementEditRecordId')?.value || '';
+            const row = (bankStatementData || []).find((item) => item.id === recordId);
+            if (!row) {
+                alert('Transaction not found.');
+                return;
+            }
+
+            const normalizedDate = normalizeDateInput(document.getElementById('bankStatementEditDate')?.value || '');
+            if (!normalizedDate) {
+                alert('Invalid date format.');
+                return;
+            }
+
+            const description = String(document.getElementById('bankStatementEditDescription')?.value || '').trim();
+            if (!description) {
+                alert('Description cannot be empty.');
+                return;
+            }
+
+            const amount = parseFloat(String(document.getElementById('bankStatementEditAmount')?.value || '').replace(/,/g, '').trim());
+            if (!Number.isFinite(amount)) {
+                alert('Invalid amount value.');
+                return;
+            }
+
+            const balance = parseFloat(String(document.getElementById('bankStatementEditBalance')?.value || '').replace(/,/g, '').trim());
+            if (!Number.isFinite(balance)) {
+                alert('Invalid balance value.');
+                return;
+            }
+
+            const sourceFileName = String(document.getElementById('bankStatementEditSourceFile')?.value || '').trim();
+            const payload = {
+                transactionDate: normalizedDate,
+                description,
+                amount: amount.toFixed(2),
+                balance: balance.toFixed(2),
+                sourceFileName,
+                syncInfo: {
+                    ...(row.syncInfo || {}),
+                    lastModified: new Date(),
+                    source: 'bank-statement-manual-edit'
+                }
+            };
+
+            try {
+                if (row.id) {
+                    await updateFirestoreDoc(COLLECTIONS.BANK_STATEMENTS, row.id, payload);
+                }
+
+                const idx = bankStatementData.findIndex((item) => item.id === recordId);
+                if (idx !== -1) {
+                    bankStatementData[idx] = { ...bankStatementData[idx], ...payload };
+                }
+                localStorage.setItem('bankStatementTransactions', JSON.stringify(bankStatementData));
+                closeBankStatementEditModal();
+                filterBankStatementHistory();
+                alert('Bank statement transaction updated successfully.');
+            } catch (error) {
+                console.error('Error updating bank statement transaction:', error);
+                alert('Failed to update transaction. Please try again.');
+            }
+        }
+
+        async function deleteBankStatementRecord(recordId) {
+            const row = (bankStatementData || []).find((item) => item.id === recordId);
+            if (!row) {
+                alert('Transaction not found.');
+                return;
+            }
+
+            if (!confirm(`Delete this transaction?\n${row.transactionDate} | ${row.description} | ${parseFloat(row.amount || 0).toFixed(2)}`)) {
+                return;
+            }
+
+            try {
+                if (row.id) {
+                    await deleteFromFirestore(COLLECTIONS.BANK_STATEMENTS, row.id);
+                }
+
+                bankStatementData = bankStatementData.filter((item) => item.id !== recordId);
+                localStorage.setItem('bankStatementTransactions', JSON.stringify(bankStatementData));
+                filterBankStatementHistory();
+                alert('Bank statement transaction deleted successfully.');
+            } catch (error) {
+                console.error('Error deleting bank statement transaction:', error);
+                alert('Failed to delete transaction. Please try again.');
+            }
+        }
+
+        function exportBankStatementHistory() {
+            const rows = getFilteredBankStatementRows();
+            if (!rows.length) {
+                alert('No bank statement records to export.');
+                return;
+            }
+
+            let csv = 'Transaction Date,Description,Amount,Balance,Source File\n';
+            rows.forEach((row) => {
+                const escapedDescription = `"${String(row.description || '').replace(/"/g, '""')}"`;
+                const escapedFile = `"${String(row.sourceFileName || '').replace(/"/g, '""')}"`;
+                csv += `${row.transactionDate},${escapedDescription},${parseFloat(row.amount || 0).toFixed(2)},${parseFloat(row.balance || 0).toFixed(2)},${escapedFile}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bank_statement_history_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert('Bank statement history exported successfully.');
+        }
+
+        async function importBankPdfToDatabase() {
+            if (!Array.isArray(parsedBankStatementRows) || parsedBankStatementRows.length === 0) {
+                alert('⚠️ Please parse a PDF file first.');
+                return;
+            }
+
+            if (!confirm(`Import ${parsedBankStatementRows.length} transaction(s) to database?`)) return;
+
+            await loadBankStatementData();
+
+            let overwriteAll = null;
+            let imported = 0;
+            let skipped = 0;
+            let failed = 0;
+            const importResults = [];
+
+            for (const txRow of parsedBankStatementRows) {
+                try {
+                    const existing = (bankStatementData || []).find(record =>
+                        record.transactionDate === txRow.transactionDate &&
+                        String(record.description || '').trim().toLowerCase() === txRow.description.trim().toLowerCase() &&
+                        Number(parseFloat(record.amount || 0).toFixed(2)) === Number(txRow.amount.toFixed(2))
+                    );
+
+                    if (existing) {
+                        if (overwriteAll === null) {
+                            overwriteAll = confirm('Some transactions already exist. Click OK to overwrite duplicates, or Cancel to skip duplicates.');
+                        }
+                        if (!overwriteAll) {
+                            skipped++;
+                            importResults.push({ ...txRow, status: 'skipped' });
+                            continue;
+                        }
+                    }
+
+                    const nowIso = new Date().toISOString();
+
+                    const payload = {
+                        transactionDate: txRow.transactionDate,
+                        description: txRow.description,
+                        amount: txRow.amount.toFixed(2),
+                        balance: txRow.balance.toFixed(2),
+                        rawLine: txRow.rawLine,
+                        sourceFileName: activeBankPdfFileName,
+                        syncInfo: {
+                            lastModified: new Date(),
+                            version: '1.0',
+                            source: 'bank-statement-pdf'
+                        },
+                        metadata: {
+                            importedAt: nowIso,
+                            userAgent: navigator.userAgent,
+                            platform: navigator.platform,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        }
+                    };
+
+                    let updatedRecord;
+                    if (existing && existing.id) {
+                        await updateFirestoreDoc(COLLECTIONS.BANK_STATEMENTS, existing.id, payload);
+                        updatedRecord = { ...existing, ...payload, updatedAt: nowIso };
+                    } else {
+                        const docId = await saveToFirestore(COLLECTIONS.BANK_STATEMENTS, payload);
+                        updatedRecord = { id: docId, ...payload, createdAt: nowIso, updatedAt: nowIso };
+                    }
+
+                    const existingIndex = bankStatementData.findIndex(record => record.id === updatedRecord.id);
+                    if (existingIndex !== -1) {
+                        bankStatementData[existingIndex] = updatedRecord;
+                    } else {
+                        bankStatementData.push(updatedRecord);
+                    }
+                    imported++;
+                    importResults.push({ ...txRow, status: 'imported' });
+                } catch (error) {
+                    failed++;
+                    console.error(`Failed importing transaction ${txRow.transactionDate}:`, error);
+                    importResults.push({ ...txRow, status: 'failed' });
+                }
+            }
+
+            localStorage.setItem('bankStatementTransactions', JSON.stringify(bankStatementData));
+            latestImportedBankRows = importResults;
+            renderLatestImportedBankRows(latestImportedBankRows);
+
+            alert(`✅ PDF import complete.\nImported: ${imported}\nSkipped: ${skipped}\nFailed: ${failed}`);
+            resetBankPdfPreview();
+            filterBankStatementHistory();
+        }
+        // ============ END PDF IMPORT FOR BANK STATEMENT ============
+
         function createBackendSection(title, content) {
             const section = document.createElement('div');
             section.className = 'backend-section';
@@ -7336,6 +8082,124 @@
             createBackendSection('Combination Report', content);
             // Automatically show the current month's combination report when page opens
             generateCombinationMonthlyReport();
+        }
+
+        function showCsvImportSection() {
+            const content = `
+                <div class="section">
+                    <div class="section-header">🏦 Bank Statement PDF Import</div>
+                    <div class="section-content" style="display: flex; justify-content: center;">
+                        <div style="width: min(900px, 100%); text-align: center; border: 2px dashed #cfd8dc; padding: 26px; border-radius: 10px; background: #fafcfe;">
+                            <h3 style="margin-bottom: 8px; color: #2c3e50;">Upload Bank Statement PDF</h3>
+                            <p style="margin-bottom: 16px; color: #546e7a;">
+                                Upload your bank statement PDF, review extracted transactions, then import to the bank statement database.
+                            </p>
+                            <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+                                <span id="pdfParserStatusBadge" style="display: inline-block; padding: 6px 12px; border: 1px solid #93c5fd; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eff6ff; color: #1d4ed8;">
+                                    PDF Parser: Loading...
+                                </span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 10px;">
+                                <button type="button" class="btn btn-info" onclick="document.getElementById('bankPdfFileInput').click()">Choose PDF File</button>
+                                <button type="button" class="btn btn-success" id="bankPdfImportBtn" onclick="importBankPdfToDatabase()" disabled>Import Transactions</button>
+                            </div>
+                            <input type="file" id="bankPdfFileInput" accept=".pdf,application/pdf" onchange="handleBankPdfSelection(event)" style="display: none;">
+                            <p id="bankPdfSelectedFile" style="margin: 8px 0 0; color: #455a64; font-size: 14px;"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="bankPdfPreviewSection" style="display: none; margin-top: 20px;">
+                    <div class="section-header">📋 Extracted Transactions Preview</div>
+                    <div class="section-content" style="overflow-x: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Transaction Date</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bankPdfPreviewTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="section" style="margin-top: 20px;">
+                    <div class="section-header">📚 Bank Statement History</div>
+                    <div class="section-content">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                            <input type="month" id="bankStatementMonthFilter" class="input-app" onchange="filterBankStatementHistory()">
+                            <input type="text" id="bankStatementSearchFilter" class="input-app" placeholder="Search description / amount / file..." onkeyup="filterBankStatementHistory()">
+                            <button class="btn btn-secondary" onclick="clearBankStatementFilters()">Clear Filters</button>
+                            <button class="btn btn-info" onclick="exportBankStatementHistory()">Export CSV</button>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                            <div style="background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: #166534;">Total Credits</div>
+                                <div style="font-weight: 700; color: #166534;">RM <span id="bankStatementTotalCredits">0.00</span></div>
+                            </div>
+                            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: #991b1b;">Total Debits</div>
+                                <div style="font-weight: 700; color: #991b1b;">RM <span id="bankStatementTotalDebits">0.00</span></div>
+                            </div>
+                            <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: #312e81;">Net</div>
+                                <div style="font-weight: 700; color: #312e81;">RM <span id="bankStatementNet">0.00</span></div>
+                            </div>
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: #334155;">Transactions</div>
+                                <div style="font-weight: 700; color: #0f172a;"><span id="bankStatementCount">0</span></div>
+                            </div>
+                        </div>
+
+                        <div class="history-table-container">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                        <th>Balance</th>
+                                        <th>Source File</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bankStatementHistoryBody"></tbody>
+                            </table>
+                            <div id="noBankStatementHistoryMessage" class="no-history-message" style="display: none;">
+                                No bank statement transactions found.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="bankLatestImportSection" style="display: none; margin-top: 20px;">
+                    <div class="section-header">✅ Imported Transactions (Latest Import)</div>
+                    <div class="section-content" style="overflow-x: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Balance</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bankLatestImportTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            createBackendSection('Bank Statement Import', content);
+            resetBankPdfPreview();
+            loadBankStatementData().then(() => filterBankStatementHistory());
+            initializePdfParserStatus();
+            renderLatestImportedBankRows(latestImportedBankRows);
         }
 
         function showHelpSection() {

@@ -25,6 +25,11 @@ service cloud.firestore {
     match /rentalTemplates/{document} {
       allow read, write: if true;
     }
+
+    // Allow read/write access to bank statement imported transactions
+    match /bankStatementTransactions/{document} {
+      allow read, write: if true;
+    }
     
     // Allow read/write access to legacy collections
     match /records/{document} {
@@ -66,6 +71,10 @@ service cloud.firestore {
     }
     
     match /users/{userId}/rentalTemplates/{document} {
+      allow read, write: if true;
+    }
+
+    match /users/{userId}/bankStatementTransactions/{document} {
       allow read, write: if true;
     }
     
