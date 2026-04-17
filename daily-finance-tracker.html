@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.min.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
@@ -70,13 +71,17 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f5f5;
-            padding: 20px;
+            padding: clamp(10px, 2.5vw, 20px);
+            padding-left: max(clamp(10px, 2.5vw, 20px), env(safe-area-inset-left, 0px));
+            padding-right: max(clamp(10px, 2.5vw, 20px), env(safe-area-inset-right, 0px));
+            padding-bottom: max(clamp(10px, 2.5vw, 20px), env(safe-area-inset-bottom, 0px));
         }
 
         .container {
-            max-width: 1400px;
+            max-width: min(1400px, 100%);
+            width: 100%;
             margin: 0 auto;
             background: white;
             border-radius: 8px;
@@ -92,7 +97,7 @@
         }
 
         .header h1 {
-            font-size: 28px;
+            font-size: clamp(1.25rem, 4vw, 1.75rem);
             margin-bottom: 10px;
         }
 
@@ -112,9 +117,10 @@
 
         .main-content {
             display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            padding: 20px;
+            grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+            gap: clamp(12px, 2vw, 20px);
+            padding: clamp(12px, 2vw, 20px);
+            align-items: start;
         }
 
         .left-section {
@@ -169,6 +175,13 @@
         .table input:focus {
             background: #e8f4f8;
             outline: 2px solid #3498db;
+        }
+
+        .table-responsive {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .total-row {
@@ -262,7 +275,9 @@
         }
 
         .total-input {
-            width: 120px;
+            width: min(8.75rem, 100%);
+            max-width: 100%;
+            min-width: 0;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -571,23 +586,25 @@
 
         /* Navigation Bar Styles */
         .navbar {
+            position: relative;
             background: #34495e;
             padding: 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .navbar-container {
-            max-width: 1400px;
+            max-width: min(1400px, 100%);
+            width: 100%;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 20px;
+            padding: 0 clamp(10px, 2.5vw, 20px);
         }
 
         .navbar-brand {
             color: white;
-            font-size: 20px;
+            font-size: clamp(0.95rem, 2.8vw, 1.25rem);
             font-weight: bold;
             text-decoration: none;
             padding: 15px 0;
@@ -734,8 +751,8 @@
 
         .charts-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+            gap: clamp(12px, 2vw, 20px);
             margin-top: 20px;
         }
 
@@ -1109,11 +1126,13 @@
         }
 
         /* Mobile Responsive Styles */
-        @media (max-width: 1200px) {
+        @media (max-width: 1100px) {
             .main-content {
                 grid-template-columns: 1fr;
             }
-            
+        }
+
+        @media (max-width: 1200px) {
             .charts-grid {
                 grid-template-columns: 1fr;
             }
@@ -1649,15 +1668,15 @@
         }
 
         .sync-status.connected {
-            background: rgba(39, 174, 96, 0.95);
+            background: rgba(0, 150, 137, 0.95);
         }
 
         .sync-status.error {
-            background: rgba(231, 76, 60, 0.95);
+            background: rgba(13, 79, 60, 0.95);
         }
 
         .sync-status.syncing {
-            background: rgba(52, 152, 219, 0.95);
+            background: rgba(0, 181, 173, 0.95);
         }
 
         @keyframes spin {
@@ -1675,22 +1694,39 @@
             }
         }
 
-        /* ========== Enterprise UI refresh (Slate · Indigo · Emerald) ========== */
+        /* ========== Enterprise UI refresh (Trust + Clarity theme) ========== */
         :root {
-            --ent-bg: #0f172a;
-            --ent-surface: #1e293b;
-            --ent-card: #f8fafc;
+            --yws-teal: #0ea5a4;
+            --yws-teal-dark: #0f766e;
+            --yws-mint: #e6fffb;
+            --yws-forest: #0f172a;
+            --yws-forest-mid: #1e293b;
+            --yws-forest-deep: #0f172a;
+            --yws-gold: #c9a227;
+            --yws-gold-dark: #a68519;
+            --yws-gold-light: #e8d48b;
+            --yws-canvas: #f8fafc;
+
+            --ent-bg: var(--yws-canvas);
+            --ent-surface: #ffffff;
+            --ent-card: #ffffff;
             --ent-border: #e2e8f0;
-            --ent-text: #0f172a;
-            --ent-muted: #64748b;
-            --ent-indigo: #4f46e5;
-            --ent-indigo-hover: #4338ca;
-            --ent-emerald: #059669;
-            --ent-emerald-hover: #047857;
+            --ent-text: var(--yws-forest-deep);
+            --ent-muted: #475569;
+            --ent-indigo: var(--yws-teal);
+            --ent-indigo-hover: var(--yws-teal-dark);
+            --ent-emerald: var(--yws-teal);
+            --ent-emerald-hover: var(--yws-teal-dark);
             --ent-radius: 12px;
-            --ent-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+            --ent-shadow: 0 6px 18px rgba(15, 23, 42, 0.10);
             --ent-font: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         }
+
+        .bg-yws-forest { background: var(--yws-forest) !important; }
+        .bg-yws-canvas { background: var(--yws-canvas) !important; }
+        .text-yws-teal { color: var(--yws-teal) !important; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
 
         .theme-enterprise {
             font-family: var(--ent-font);
@@ -1707,7 +1743,7 @@
         }
 
         .theme-enterprise .header {
-            background: linear-gradient(135deg, #1e293b 0%, #312e81 100%);
+            background: var(--yws-forest);
             border-radius: var(--ent-radius) var(--ent-radius) 0 0;
             padding: 1.5rem 1.25rem;
         }
@@ -1735,7 +1771,7 @@
         .theme-enterprise .input-app:focus {
             outline: none;
             border-color: var(--ent-indigo);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+            box-shadow: 0 0 0 3px rgba(14, 165, 164, 0.22);
             background: #fff;
         }
 
@@ -1746,8 +1782,8 @@
 
         .theme-enterprise .main-content {
             align-items: start;
-            padding: 1.25rem;
-            gap: 1.25rem;
+            padding: clamp(0.75rem, 2.2vw, 1.25rem);
+            gap: clamp(0.75rem, 2.2vw, 1.25rem);
         }
 
         .theme-enterprise .sidebar-sticky {
@@ -1773,7 +1809,7 @@
 
         .theme-enterprise .section-header,
         .theme-enterprise .total-header {
-            background: linear-gradient(90deg, #312e81, #4f46e5);
+            background: var(--yws-teal);
             font-weight: 600;
             letter-spacing: 0.06em;
             text-transform: uppercase;
@@ -1783,12 +1819,12 @@
 
         .theme-enterprise .right-section .section-header[style*="#27ae60"],
         .theme-enterprise .section-header[style*="#27ae60"] {
-            background: linear-gradient(90deg, #047857, var(--ent-emerald)) !important;
+            background: var(--yws-teal) !important;
         }
 
         .theme-enterprise .right-section .section-header[style*="#3498db"],
         .theme-enterprise .section-header[style*="#3498db"] {
-            background: linear-gradient(90deg, #4338ca, var(--ent-indigo)) !important;
+            background: var(--yws-teal) !important;
         }
 
         .theme-enterprise .section-content {
@@ -1796,7 +1832,7 @@
         }
 
         .theme-enterprise .table th {
-            background: #1e293b;
+            background: var(--yws-forest);
             color: #f8fafc;
             font-weight: 700;
             text-transform: uppercase;
@@ -1815,7 +1851,7 @@
         }
 
         .theme-enterprise .table tbody tr:hover {
-            background: #eef2ff;
+            background: var(--yws-mint);
         }
 
         .theme-enterprise .table input:not(.input-app) {
@@ -1825,11 +1861,11 @@
 
         .theme-enterprise .table input:focus {
             border-color: var(--ent-indigo);
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+            box-shadow: 0 0 0 2px rgba(14, 165, 164, 0.18);
         }
 
         .theme-enterprise .cash-out-header {
-            background: #b91c1c;
+            background: var(--yws-teal);
         }
 
         .theme-enterprise .history-section {
@@ -1850,7 +1886,7 @@
         }
 
         .theme-enterprise .history-table tbody tr:hover {
-            background: #eef2ff;
+            background: var(--yws-mint);
         }
 
         /* Cigarette responsive cards */
@@ -1871,7 +1907,7 @@
         .cig-card-title {
             font-weight: 700;
             font-size: 0.8rem;
-            color: #312e81;
+            color: var(--yws-forest-mid);
             margin-bottom: 0.5rem;
             letter-spacing: 0.02em;
         }
@@ -1899,8 +1935,8 @@
             margin-top: 1rem;
             padding: 0.85rem 1rem;
             border-radius: var(--ent-radius);
-            background: linear-gradient(90deg, #ecfdf5, #d1fae5);
-            border: 1px solid #a7f3d0;
+            background: linear-gradient(90deg, #f0fdfa, #e2f8f7);
+            border: 1px solid #bae6e2;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1994,8 +2030,8 @@
 
         .night-batch-chip[aria-expanded="true"] {
             border-color: var(--ent-indigo, #4f46e5);
-            background: #eef2ff;
-            color: #312e81;
+            background: var(--yws-mint);
+            color: var(--yws-forest-mid);
         }
 
         .night-batch-bar .input-app {
@@ -2147,8 +2183,8 @@
 
         .morning-batch-chip[aria-expanded="true"] {
             border-color: var(--ent-indigo, #4f46e5);
-            background: #eef2ff;
-            color: #312e81;
+            background: var(--yws-mint);
+            color: var(--yws-forest-mid);
         }
 
         .morning-batch-bar .input-app {
@@ -2314,22 +2350,112 @@
         }
 
         .theme-enterprise .btn-success {
-            background: var(--ent-emerald);
+            background: var(--yws-teal);
             border-color: transparent;
         }
 
         .theme-enterprise .btn-success:hover {
-            background: var(--ent-emerald-hover);
+            background: var(--yws-teal-dark);
         }
 
         .theme-enterprise .navbar-container {
-            background: var(--ent-surface);
+            background: var(--yws-forest);
         }
 
         .save-actions-strip {
             background: #f1f5f9 !important;
             border-top: 1px solid var(--ent-border);
             border-bottom: 1px solid var(--ent-border);
+            padding: clamp(12px, 2.5vw, 22px);
+            text-align: center;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: clamp(4px, 1vw, 8px);
+        }
+
+        .save-actions-strip .btn {
+            font-size: clamp(0.9rem, 2.4vw, 1rem);
+            padding: clamp(0.65rem, 1.8vw, 0.875rem) clamp(1rem, 3.5vw, 2.25rem);
+            margin: 0;
+        }
+
+        #coffeeSales {
+            width: min(7.5rem, 100%);
+            max-width: 100%;
+        }
+
+        /* One-color theme enforcement */
+        body,
+        .theme-enterprise {
+            background: var(--yws-canvas) !important;
+            color: var(--yws-forest-deep);
+        }
+
+        .theme-enterprise .header,
+        .theme-enterprise .date-section,
+        .theme-enterprise .navbar,
+        .theme-enterprise .navbar-container {
+            background: var(--yws-forest) !important;
+            color: #fff !important;
+        }
+
+        .theme-enterprise .section-header,
+        .theme-enterprise .total-header,
+        .theme-enterprise .cash-out-header {
+            background: var(--yws-teal) !important;
+            color: #fff !important;
+        }
+
+        .theme-enterprise .table th,
+        .theme-enterprise .cash-out-table th,
+        .theme-enterprise .history-table th {
+            background: var(--yws-forest) !important;
+            color: #fff !important;
+        }
+
+        .theme-enterprise .nav-link.active {
+            background: var(--yws-teal) !important;
+            color: #fff !important;
+        }
+
+        .theme-enterprise .btn-primary,
+        .theme-enterprise .btn-info,
+        .theme-enterprise .btn-warning,
+        .theme-enterprise .btn-danger,
+        .theme-enterprise .btn-secondary,
+        .theme-enterprise .btn-success {
+            background: var(--yws-teal) !important;
+            border-color: var(--yws-teal-dark) !important;
+            color: #fff !important;
+        }
+
+        .theme-enterprise .btn-primary:hover,
+        .theme-enterprise .btn-info:hover,
+        .theme-enterprise .btn-warning:hover,
+        .theme-enterprise .btn-danger:hover,
+        .theme-enterprise .btn-secondary:hover,
+        .theme-enterprise .btn-success:hover {
+            background: var(--yws-teal-dark) !important;
+            border-color: var(--yws-teal-dark) !important;
+        }
+
+        /* Normalize remaining inline legacy colors to theme tokens */
+        .theme-enterprise [style*="#2c3e50"] { color: var(--yws-forest-mid) !important; }
+        .theme-enterprise [style*="#666"],
+        .theme-enterprise [style*="#999"],
+        .theme-enterprise [style*="#6c757d"] { color: var(--ent-muted) !important; }
+        .theme-enterprise [style*="#27ae60"],
+        .theme-enterprise [style*="#229954"] { color: var(--yws-teal-dark) !important; border-color: var(--yws-teal) !important; }
+        .theme-enterprise [style*="#3498db"],
+        .theme-enterprise [style*="#2980b9"] { color: var(--yws-teal-dark) !important; border-color: var(--yws-teal) !important; }
+        .theme-enterprise [style*="#e74c3c"],
+        .theme-enterprise [style*="#c0392b"] { color: var(--yws-forest-mid) !important; border-color: var(--ent-border) !important; }
+        .theme-enterprise [style*="background: #f8f9fa"],
+        .theme-enterprise [style*="background:#f8f9fa"],
+        .theme-enterprise [style*="background: #ecf0f1"] {
+            background: var(--yws-canvas) !important;
         }
 
         @media (max-width: 1024px) {
@@ -2346,24 +2472,28 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #1e293b 0%, #312e81 50%, #0f766e 100%);
-            padding: 20px;
+            min-height: 100dvh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0f766e 100%);
+            padding: clamp(12px, 3vw, 24px);
+            padding-left: max(clamp(12px, 3vw, 24px), env(safe-area-inset-left, 0px));
+            padding-right: max(clamp(12px, 3vw, 24px), env(safe-area-inset-right, 0px));
+            padding-bottom: max(clamp(12px, 3vw, 24px), env(safe-area-inset-bottom, 0px));
         }
 
         .login-card {
             background: white;
             border-radius: 12px;
-            padding: 40px;
-            max-width: 400px;
+            padding: clamp(1.25rem, 5vw, 2.5rem);
+            max-width: min(400px, 100%);
             width: 100%;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
 
         .login-title {
             text-align: center;
-            color: #2c3e50;
+            color: var(--yws-forest-mid);
             margin-bottom: 30px;
-            font-size: 28px;
+            font-size: clamp(1.25rem, 4vw, 1.75rem);
         }
 
         .login-form-group {
@@ -2454,8 +2584,8 @@
     <!-- Login Page -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
-            <h2 class="login-title">📊 Daily Finance Tracker</h2>
-            <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">Please login to continue</p>
+            <h2 class="login-title">Daily Finance Tracker</h2>
+            <p style="text-align: center; color: var(--ent-muted); margin-bottom: 30px;">Please login to continue</p>
             
             <form id="loginForm">
                 <div class="login-form-group">
@@ -2478,8 +2608,8 @@
                 <p>Don't have an account? <a href="#" id="showSignup">Sign up</a></p>
             </div>
             
-            <div style="margin-top: 30px; padding: 15px; background: #ecf0f1; border-radius: 8px; font-size: 12px; color: #7f8c8d; text-align: center;">
-                <strong>💡 Tip:</strong> Create your account using the "Sign up" link above.
+            <div style="margin-top: 30px; padding: 15px; background: var(--yws-canvas); border-radius: 8px; font-size: 12px; color: var(--ent-muted); text-align: center; border: 1px solid var(--ent-border);">
+                <strong>Tip:</strong> Create your account using the "Sign up" link above.
             </div>
         </div>
     </div>
@@ -2487,8 +2617,8 @@
     <!-- Signup Page -->
     <div id="signupPage" class="login-container" style="display: none;">
         <div class="login-card">
-            <h2 class="login-title">📊 Create Account</h2>
-            <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">Sign up for Daily Finance Tracker</p>
+            <h2 class="login-title">Create Account</h2>
+            <p style="text-align: center; color: var(--ent-muted); margin-bottom: 30px;">Sign up for Daily Finance Tracker</p>
             
             <form id="signupForm">
                 <div class="login-form-group">
@@ -2522,54 +2652,54 @@
     <div id="mainApp" class="theme-enterprise" style="display: none;">
     <nav class="navbar">
         <div class="navbar-container">
-            <a href="#" class="navbar-brand" onclick="showMainPage(event)">📊 Daily Finance Tracker</a>
+            <a href="#" class="navbar-brand" onclick="showMainPage(event)">Daily Finance Tracker</a>
             
             <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
             
             <ul class="navbar-nav" id="navbarNav">
                 <li class="nav-item">
-                    <a href="#" class="nav-link active" onclick="showMainPage(event)">🏠 Morning Section</a>
+                    <a href="#" class="nav-link active" id="navMorning" onclick="showMainPage(event)">Morning Section</a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="showNightSection(event)">🌙 Night Section</a>
+                    <a href="#" class="nav-link" onclick="showNightSection(event)">Night Section</a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="showReports(event)">📈 Morning Reports</a>
+                    <a href="#" class="nav-link" onclick="showReports(event)">Morning Reports</a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="showNightReports(event)">🌙 Night Reports</a>
+                    <a href="#" class="nav-link" onclick="showNightReports(event)">Night Reports</a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="showCombinationReport(event)">🧾 Combination Report</a>
+                    <a href="#" class="nav-link" onclick="showCombinationReport(event)">Combination Report</a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="showCsvImport(event)">🏦 PDF Import</a>
+                    <a href="#/pdfimport" class="nav-link" id="navPdfImport" onclick="showCsvImport(event)">PDF Import</a>
                 </li>
                 <li class="nav-item dropdown">
-                    <a href="#" class="nav-link">⚙️ Settings</a>
+                    <a href="#" class="nav-link">Settings</a>
                     <div class="dropdown-content">
                         <a href="#" class="dropdown-item" onclick="showExpenseSettings(event)">
-                            💰 Expense Templates
+                            Expense Templates
                         </a>
                         <a href="#" class="dropdown-item" onclick="showSalarySettings(event)">
-                            👥 Salary Names
+                            Salary Names
                         </a>
                         <a href="#" class="dropdown-item" onclick="showBankExpenseSettings(event)">
-                            🏦 Bank Expense Templates
+                            Bank Expense Templates
                         </a>
                         <a href="#" class="dropdown-item" onclick="showProductSettings(event)">
-                            📦 Product Settings
+                            Product Settings
                         </a>
                         <a href="#" class="dropdown-item" onclick="showRentalSettings(event)">
-                            🏠 Rental Settings
+                            Rental Settings
                         </a>
                     </div>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="showHelp(event)">❓ Help</a>
+                    <a href="#" class="nav-link" onclick="showHelp(event)">Help</a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="handleLogout(event)" style="color: #e74c3c;">🚪 Logout</a>
+                    <a href="#" class="nav-link" onclick="handleLogout(event)">Logout</a>
                 </li>
             </ul>
         </div>
@@ -2579,7 +2709,7 @@
         <!-- Mobile Instructions Banner -->
         <div class="mobile-instructions" id="mobileInstructions" style="display: none;">
             <div class="instructions-content">
-                <span class="instructions-text">📱 Mobile users: Pinch to zoom out to see full tables</span>
+                <span class="instructions-text">Mobile users: Pinch to zoom out to see full tables</span>
                 <button class="instructions-close" onclick="hideMobileInstructions()">×</button>
             </div>
         </div>
@@ -2587,7 +2717,7 @@
         <!-- Sync Status Indicator -->
         <div class="sync-status" id="syncStatus">
             <div class="sync-indicator">
-                <span class="sync-icon">🔄</span>
+                <span class="sync-icon">SYNC</span>
                 <span class="sync-text">Connecting to Firestore...</span>
             </div>
         </div>
@@ -2603,8 +2733,8 @@
         </div>
 
         <!-- Save Data Button Section -->
-        <div class="save-actions-strip" style="padding: 20px; text-align: center;">
-            <button type="button" class="btn btn-success" onclick="saveData()" style="font-size: 16px; padding: 14px 36px;">
+        <div class="save-actions-strip">
+            <button type="button" class="btn btn-success" onclick="saveData()">
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
                 Save day data
             </button>
@@ -2814,13 +2944,13 @@
                         <span class="total-label">Shopee Received:</span>
                         <input type="number" id="shopeeReceived" class="total-input" placeholder="0.00" oninput="calculateCashReceived()">
                     </div>
-                    <div class="total-item" style="background-color: #f0f0f0; padding: 10px; border-radius: 4px; border: 2px solid #27ae60;">
-                        <span class="total-label" style="font-weight: bold; color: #27ae60;">Total:</span>
-                        <span class="summary-value" id="totalCashReceived" style="font-weight: bold; font-size: 1.1em; color: #27ae60;">0.00</span>
+                    <div class="total-item" style="background-color: var(--yws-canvas); padding: 10px; border-radius: 4px; border: 2px solid var(--yws-teal);">
+                        <span class="total-label" style="font-weight: bold; color: var(--yws-teal-dark);">Total:</span>
+                        <span class="summary-value" id="totalCashReceived" style="font-weight: bold; font-size: 1.1em; color: var(--yws-teal-dark);">0.00</span>
                     </div>
 
                     <div class="summary-section">
-                        <h4 style="margin-bottom: 15px; color: #2c3e50;">Sales Summary</h4>
+                        <h4 style="margin-bottom: 15px; color: var(--yws-forest-mid);">Sales Summary</h4>
                         <div class="summary-item">
                             <span class="summary-label">Sales Today:</span>
                             <span class="summary-value" id="salesToday">0.00</span>
@@ -2835,7 +2965,7 @@
                         </div>
                         <div class="summary-item">
                             <span class="summary-label">Coffee Sales:</span>
-                            <input type="number" id="coffeeSales" class="total-input" placeholder="0.00" style="width: 100px;">
+                            <input type="number" id="coffeeSales" class="total-input" placeholder="0.00">
                         </div>
                     </div>
                 </div>
@@ -2845,7 +2975,7 @@
         <!-- History Table Section -->
         <div class="history-section">
             <div class="history-header">
-                <h3>📋 Financial Records History</h3>
+                <h3>Financial Records History</h3>
                 <div class="history-controls">
                     <button type="button" class="btn btn-action-refresh" onclick="refreshHistoryTable()"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>Refresh</button>
                     <button type="button" class="btn btn-action-export" onclick="exportHistoryData()"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>
@@ -2891,7 +3021,7 @@
         <!-- Monthly batch entry (morning) -->
         <div class="history-section morning-batch-section" style="margin-top: 24px;">
             <div class="history-header">
-                <h3>📅 Monthly Data Input</h3>
+                <h3>Monthly Data Input</h3>
             </div>
             <div class="morning-batch-toolbar">
                 <div class="filter-group" style="margin: 0;">
@@ -2908,7 +3038,7 @@
     <!-- Night Section Container -->
     <div class="container theme-enterprise" id="nightSectionContainer" style="display: none;">
         <div class="header">
-            <h1>🌙 Night Section</h1>
+            <h1>Night Section</h1>
             <p>Night Shift Financial Data Entry</p>
         </div>
 
@@ -2918,13 +3048,13 @@
         </div>
 
         <!-- Save Data Button Section -->
-        <div class="save-actions-strip" style="padding: 20px; text-align: center;">
-            <button type="button" class="btn btn-success" onclick="saveNightData()" style="font-size: 16px; padding: 14px 32px; margin: 5px;">
+        <div class="save-actions-strip">
+            <button type="button" class="btn btn-success" onclick="saveNightData()">
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
                 Save night sales
             </button>
-            <button type="button" class="btn btn-info" onclick="document.getElementById('nightCsvFileInput').click()" style="font-size: 16px; padding: 14px 32px; margin: 5px;">Import CSV</button>
-            <button type="button" class="btn btn-secondary" onclick="downloadNightCsvSample()" style="font-size: 16px; padding: 14px 32px; margin: 5px;">Sample CSV</button>
+            <button type="button" class="btn btn-info" onclick="document.getElementById('nightCsvFileInput').click()">Import CSV</button>
+            <button type="button" class="btn btn-secondary" onclick="downloadNightCsvSample()">Sample CSV</button>
             <input type="file" id="nightCsvFileInput" accept=".csv" style="display: none;" onchange="handleNightCsvImport(event)">
         </div>
 
@@ -2945,7 +3075,7 @@
                         <div class="beer-workspace-banner">
                             <label class="beer-layout-toggle">
                                 <input type="checkbox" id="nightBeerLayoutEditToggle" onchange="toggleNightBeerLayoutEdit(this.checked)">
-                                <span title="When on, you can edit line names, prices, add/remove rows">⚙ Modify layout</span>
+                                <span title="When on, you can edit line names, prices, add/remove rows">Modify layout</span>
                             </label>
                             <button type="button" class="btn btn-secondary" id="btnAddNightBeerRow" onclick="addNightBeerRow()" style="display: none;">+ Add line</button>
                             <button type="button" class="btn btn-success" onclick="saveNightBeerTableTemplate()">
@@ -2980,7 +3110,7 @@
             <div class="right-section sidebar-sticky">
                 <!-- TOTAL Section -->
                 <div class="section">
-                    <div class="section-header" style="background: #27ae60;">TOTAL:</div>
+                    <div class="section-header" style="background: var(--yws-teal);">TOTAL:</div>
                     <div class="section-content" style="padding: 20px;">
                         <div class="total-item">
                             <span class="total-label">Cash Received:</span>
@@ -2995,7 +3125,7 @@
 
                 <!-- Sales Summary Section -->
                 <div class="section">
-                    <div class="section-header" style="background: #3498db;">Sales Summary</div>
+                    <div class="section-header" style="background: var(--yws-teal);">Sales Summary</div>
                     <div class="section-content">
                         <div class="summary-item">
                             <span class="summary-label">Sales Today:</span>
@@ -3021,7 +3151,7 @@
         <!-- Night Section Financial Records History -->
         <div class="history-section" style="margin-top: 30px;">
             <div class="history-header">
-                <h3>📋 Night Shift Records History</h3>
+                <h3>Night Shift Records History</h3>
                 <div class="history-controls">
                     <button type="button" class="btn btn-action-refresh" onclick="refreshNightHistoryTable()"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>Refresh</button>
                     <button type="button" class="btn btn-action-export" onclick="exportNightHistoryData()"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>
@@ -3068,7 +3198,7 @@
         <!-- Monthly batch entry (night) -->
         <div class="history-section night-batch-section" style="margin-top: 24px;">
             <div class="history-header">
-                <h3>📅 Monthly Data Input</h3>
+                <h3>Monthly Data Input</h3>
             </div>
             <div class="night-batch-toolbar">
                 <div class="filter-group" style="margin: 0;">
@@ -3163,6 +3293,11 @@
                     const { signOut } = window.firebaseAuth;
                     await signOut(window.firebaseAuth.auth);
                     console.log('User logged out successfully');
+
+                    try {
+                        if (typeof setAppRouteHash === 'function') setAppRouteHash('');
+                        else { window.history.replaceState(null, '', window.location.pathname + window.location.search); }
+                    } catch (e) { /* ignore */ }
                     
                     // Show login page and hide main app
                     document.getElementById('loginPage').style.display = 'flex';
@@ -3232,13 +3367,17 @@
                         const signupPage = document.getElementById('signupPage');
                         const mainApp = document.getElementById('mainApp');
                         
-                        if (loginPage) loginPage.style.display = 'none';
-                        if (signupPage) signupPage.style.display = 'none';
-                        if (mainApp) mainApp.style.display = 'block';
-                        console.log('User logged in and shown main app:', user.email);
-                        
-                        // Load cigarette products when user logs in
-                        await loadCigaretteProducts();
+                if (loginPage) loginPage.style.display = 'none';
+                if (signupPage) signupPage.style.display = 'none';
+                if (mainApp) mainApp.style.display = 'block';
+                console.log('User logged in and shown main app:', user.email);
+                
+                // Load cigarette products when user logs in
+                await loadCigaretteProducts();
+
+                if (typeof applyAppRouteFromHash === 'function') {
+                    applyAppRouteFromHash();
+                }
                     } else {
                         // User is not logged in
                         const loginPage = document.getElementById('loginPage');
@@ -3383,7 +3522,9 @@
             BANK_EXPENSES: 'bankExpenseTemplates',
             DAILY_DATA: 'dailyFinanceData',
             RENTALS: 'rentalTemplates',
-            BANK_STATEMENTS: 'bankStatementTransactions'
+            BANK_STATEMENTS: 'bankStatementTransactions',
+            GRAB_CSV_IMPORTS: 'grabCsvImportTransactions',
+            SHOPEE_CSV_IMPORTS: 'shopeeCsvImportTransactions'
         };
 
         // Night Section (and cigarette/ beer settings for these emails) share one Firestore subtree.
@@ -3670,19 +3811,19 @@
             
             switch(status) {
                 case 'connected':
-                    syncIcon.textContent = '✅';
+                    syncIcon.textContent = 'OK';
                     syncIcon.style.animation = 'none';
                     break;
                 case 'syncing':
-                    syncIcon.textContent = '🔄';
+                    syncIcon.textContent = 'SYNC';
                     syncIcon.style.animation = 'spin 2s linear infinite';
                     break;
                 case 'error':
-                    syncIcon.textContent = '❌';
+                    syncIcon.textContent = 'ERR';
                     syncIcon.style.animation = 'none';
                     break;
                 default:
-                    syncIcon.textContent = '🔄';
+                    syncIcon.textContent = 'SYNC';
                     syncIcon.style.animation = 'spin 2s linear infinite';
             }
         }
@@ -3875,9 +4016,9 @@
                         <td class="${profitClass}">RM ${netProfit.toFixed(2)}</td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn-action btn-view" onclick="viewRecord('${record.date}')" title="View Details">👁️</button>
-                                <button class="btn-action btn-edit" onclick="editRecord('${record.date}')" title="Edit Record">✏️</button>
-                                <button class="btn-action btn-delete" onclick="deleteRecord('${record.date}')" title="Delete Record">🗑️</button>
+                                <button class="btn-action btn-view" onclick="viewRecord('${record.date}')" title="View Details">View</button>
+                                <button class="btn-action btn-edit" onclick="editRecord('${record.date}')" title="Edit Record">Edit</button>
+                                <button class="btn-action btn-delete" onclick="deleteRecord('${record.date}')" title="Delete Record">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -3909,7 +4050,7 @@
 
             pagination.innerHTML = `
                 <button class="btn btn-secondary" ${prevDisabled ? 'disabled' : ''} onclick="changeHistoryPage(${current - 1})">Prev</button>
-                <span style="font-weight: 600; color: #2c3e50;">Page ${current} / ${totalPages}</span>
+                <span style="font-weight: 600; color: var(--yws-forest-mid);">Page ${current} / ${totalPages}</span>
                 <button class="btn btn-secondary" ${nextDisabled ? 'disabled' : ''} onclick="changeHistoryPage(${current + 1})">Next</button>
             `;
         }
@@ -3968,7 +4109,7 @@
             modal.className = 'edit-modal';
             modal.innerHTML = `
                 <div class="edit-modal-content">
-                    <h2>📋 Record Details - ${formatDate(date)}</h2>
+                    <h2>Record Details - ${formatDate(date)}</h2>
                     <div class="edit-form-group">
                         <label>Total Sales:</label>
                         <input type="text" value="RM ${parseFloat(record.salesToday || 0).toFixed(2)}" readonly>
@@ -4107,7 +4248,7 @@
             modal.className = 'edit-modal';
             modal.innerHTML = `
                 <div class="edit-modal-content">
-                    <h2>✏️ Edit Record - ${formatDate(date)}</h2>
+                    <h2>Edit Record - ${formatDate(date)}</h2>
                     <div class="edit-form-group">
                         <label>Cigarette Sales:</label>
                         <input type="number" id="editCigaretteSales" value="${record.cigaretteSales || 0}" step="0.01">
@@ -4176,7 +4317,7 @@
                         <input type="number" id="editShopeeReceived" value="${record.shopeeReceived || 0}" step="0.01">
                     </div>
                     <div class="edit-modal-buttons">
-                        <button class="btn btn-success" onclick="saveEditedRecord('${date}')">💾 Save Changes</button>
+                        <button class="btn btn-success" onclick="saveEditedRecord('${date}')">Save Changes</button>
                         <button class="btn btn-secondary" onclick="this.closest('.edit-modal').remove()">Cancel</button>
                     </div>
                 </div>
@@ -4617,7 +4758,7 @@
 
             pagination.innerHTML = `
                 <button class="btn btn-secondary" ${prevDisabled ? 'disabled' : ''} onclick="changeNightHistoryPage(${current - 1})">Prev</button>
-                <span style="font-weight: 600; color: #2c3e50;">Page ${current} / ${totalPages}</span>
+                <span style="font-weight: 600; color: var(--yws-forest-mid);">Page ${current} / ${totalPages}</span>
                 <button class="btn btn-secondary" ${nextDisabled ? 'disabled' : ''} onclick="changeNightHistoryPage(${current + 1})">Next</button>
             `;
         }
@@ -4684,17 +4825,17 @@
                         </td>
                         <td class="action-buttons">
                             ${isEditingRow
-                                ? `<button class="btn btn-secondary btn-edit" id="night-inline-edit-btn-${rowKey}" onclick="nightInlineCancelEdit()" ${inlineState.isSaving ? 'disabled' : ''}>✏️ Cancel</button>`
-                                : `<button class="btn btn-primary btn-edit" id="night-inline-edit-btn-${rowKey}" onclick="nightInlineStartEdit('${rowKey}', '${record.id || ''}', '${record.date}')">✏️ Edit</button>`}
+                                ? `<button class="btn btn-secondary btn-edit" id="night-inline-edit-btn-${rowKey}" onclick="nightInlineCancelEdit()" ${inlineState.isSaving ? 'disabled' : ''}>Cancel</button>`
+                                : `<button class="btn btn-primary btn-edit" id="night-inline-edit-btn-${rowKey}" onclick="nightInlineStartEdit('${rowKey}', '${record.id || ''}', '${record.date}')">Edit</button>`}
                             <button type="button"
                                 class="btn btn-success"
                                 id="night-inline-save-btn-${rowKey}"
                                 onclick="nightInlineSave('${rowKey}')"
                                 ${saveBtnDisabled ? 'disabled' : ''}
                                 style="${saveBtnStyle} ${inlineState.isSaving ? 'opacity: 0.7;' : ''}">
-                                💾 Save
+                                Save
                             </button>
-                            <button class="btn btn-danger btn-delete" id="night-inline-delete-btn-${rowKey}" onclick="deleteNightRecord('${record.date}')" ${isEditingRow || inlineState.isSaving ? 'disabled' : ''}>🗑️ Delete</button>
+                            <button class="btn btn-danger btn-delete" id="night-inline-delete-btn-${rowKey}" onclick="deleteNightRecord('${record.date}')" ${isEditingRow || inlineState.isSaving ? 'disabled' : ''}>Delete</button>
                         </td>
                     </tr>
                 `;
@@ -5081,6 +5222,120 @@
             navbarNav.classList.toggle('active');
         }
 
+        /** Deep link routes:
+         * daily-finance-tracker.html#/pdfimport
+         * daily-finance-tracker.html#/pdfimport/bank
+         * daily-finance-tracker.html#/pdfimport/grab
+         * daily-finance-tracker.html#/pdfimport/shopee
+         */
+        const APP_HASH_PDF_IMPORT = '#/pdfimport';
+        const APP_HASH_PDF_IMPORT_BANK = '#/pdfimport/bank';
+        const APP_HASH_PDF_IMPORT_GRAB = '#/pdfimport/grab';
+        const APP_HASH_PDF_IMPORT_SHOPEE = '#/pdfimport/shopee';
+
+        function normalizeAppHashRoute() {
+            const raw = (window.location.hash || '').trim().toLowerCase();
+            if (raw === '#/pdfimport' || raw === '#pdfimport' || raw === '#/pdf-import' || raw === '#/pdfimport/bank') {
+                return 'pdfimport-bank';
+            }
+            if (raw === '#/pdfimport/grab') {
+                return 'pdfimport-grab';
+            }
+            if (raw === '#/pdfimport/shopee') {
+                return 'pdfimport-shopee';
+            }
+            return '';
+        }
+
+        function setAppRouteHash(route) {
+            const base = window.location.pathname + window.location.search;
+            let next = base;
+            if (route === 'pdfimport' || route === 'pdfimport-bank') next = base + APP_HASH_PDF_IMPORT_BANK;
+            if (route === 'pdfimport-grab') next = base + APP_HASH_PDF_IMPORT_GRAB;
+            if (route === 'pdfimport-shopee') next = base + APP_HASH_PDF_IMPORT_SHOPEE;
+            const cur = window.location.pathname + window.location.search + (window.location.hash || '');
+            if (cur !== next) {
+                try {
+                    window.history.replaceState(null, '', next);
+                } catch (e) {
+                    if (route === 'pdfimport' || route === 'pdfimport-bank') window.location.hash = '/pdfimport/bank';
+                    else if (route === 'pdfimport-grab') window.location.hash = '/pdfimport/grab';
+                    else if (route === 'pdfimport-shopee') window.location.hash = '/pdfimport/shopee';
+                    else window.location.hash = '';
+                }
+            }
+        }
+
+        function getImportSubNavHtml(activeKey) {
+            const isBank = activeKey === 'bank';
+            const isGrab = activeKey === 'grab';
+            const isShopee = activeKey === 'shopee';
+            return `
+                <div class="section" style="margin-bottom: 16px;">
+                    <div class="section-content" style="display:flex; flex-wrap:wrap; gap:10px;">
+                        <button type="button" class="btn ${isBank ? 'btn-success' : 'btn-secondary'}" onclick="navigateToPdfImportScreen({ subRoute: 'bank' })">Bank Statement Import</button>
+                        <button type="button" class="btn ${isGrab ? 'btn-success' : 'btn-secondary'}" onclick="navigateToPdfImportScreen({ subRoute: 'grab' })">Grab CSV Import</button>
+                        <button type="button" class="btn ${isShopee ? 'btn-success' : 'btn-secondary'}" onclick="navigateToPdfImportScreen({ subRoute: 'shopee' })">Shopee CSV Import</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function navigateToPdfImportScreen(opts) {
+            opts = opts || {};
+            hideAllSections();
+            const subRoute = opts.subRoute || 'bank';
+            if (subRoute === 'grab') showGrabCsvImportSection();
+            else if (subRoute === 'shopee') showShopeeCsvImportSection();
+            else showCsvImportSection();
+            document.querySelectorAll('#navbarNav .nav-link').forEach(link => link.classList.remove('active'));
+            const pdfNav = document.getElementById('navPdfImport');
+            if (pdfNav) pdfNav.classList.add('active');
+            if (!opts.fromHash) {
+                if (subRoute === 'grab') setAppRouteHash('pdfimport-grab');
+                else if (subRoute === 'shopee') setAppRouteHash('pdfimport-shopee');
+                else setAppRouteHash('pdfimport-bank');
+            }
+        }
+
+        function showMainPageFromHashOnly() {
+            hideAllSections();
+            const c = document.querySelector('#mainApp .container');
+            if (c) c.style.display = 'block';
+            document.querySelectorAll('#navbarNav .nav-link').forEach(link => link.classList.remove('active'));
+            const morning = document.getElementById('navMorning');
+            if (morning) morning.classList.add('active');
+            if (typeof initMorningBatchMonthUI === 'function') initMorningBatchMonthUI();
+        }
+
+        function applyAppRouteFromHash() {
+            const mainApp = document.getElementById('mainApp');
+            if (!mainApp || mainApp.style.display === 'none') return;
+
+            const route = normalizeAppHashRoute();
+            if (route === 'pdfimport-bank') {
+                navigateToPdfImportScreen({ fromHash: true, subRoute: 'bank' });
+                return;
+            }
+            if (route === 'pdfimport-grab') {
+                navigateToPdfImportScreen({ fromHash: true, subRoute: 'grab' });
+                return;
+            }
+            if (route === 'pdfimport-shopee') {
+                navigateToPdfImportScreen({ fromHash: true, subRoute: 'shopee' });
+                return;
+            }
+
+            const h = (window.location.hash || '').trim();
+            if (h === '' || h === '#') {
+                if (document.querySelector('.backend-section')) {
+                    showMainPageFromHashOnly();
+                }
+            }
+        }
+
+        window.addEventListener('hashchange', applyAppRouteFromHash);
+
         function setActiveNavLink(clickedLink) {
             // Remove active class from all nav links
             document.querySelectorAll('.nav-link').forEach(link => {
@@ -5091,77 +5346,93 @@
         }
 
         function showMainPage(event) {
-            setActiveNavLink(event.target);
-            // Hide all other sections and show main dashboard
+            if (event) {
+                event.preventDefault();
+                if (event.target) setActiveNavLink(event.target);
+            } else {
+                document.querySelectorAll('#navbarNav .nav-link').forEach(link => link.classList.remove('active'));
+                const morning = document.getElementById('navMorning');
+                if (morning) morning.classList.add('active');
+            }
             hideAllSections();
-            document.querySelector('.container').style.display = 'block';
-            // Initialize Morning monthly batch UI
+            setAppRouteHash('');
+            const mainDash = document.querySelector('#mainApp .container');
+            if (mainDash) mainDash.style.display = 'block';
             if (typeof initMorningBatchMonthUI === 'function') initMorningBatchMonthUI();
         }
 
         function showReports(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showReportsSection();
         }
 
         function showNightReports(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showNightReportsSection();
         }
 
         function showCombinationReport(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showCombinationReportSection();
         }
 
         function showCsvImport(event) {
-            setActiveNavLink(event.target);
-            hideAllSections();
-            showCsvImportSection();
+            if (event) event.preventDefault();
+            navigateToPdfImportScreen({ fromHash: false });
         }
 
         function showExpenseSettings(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showExpenseSettingsSection();
         }
 
         function showSalarySettings(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showSalarySettingsSection();
         }
 
         function showBankExpenseSettings(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showBankExpenseSettingsSection();
         }
 
         function showProductSettings(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showProductSettingsSection();
         }
 
         function showRentalSettings(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showRentalSettingsSection();
         }
 
         function showDataManagement(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showDataManagementSection();
         }
 
         function showHelp(event) {
             setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             showHelpSection();
         }
 
@@ -6327,6 +6598,7 @@
         function showNightSection(event) {
             if (event) setActiveNavLink(event.target);
             hideAllSections();
+            setAppRouteHash('');
             
             const nightSection = document.getElementById('nightSectionContainer');
             if (nightSection) {
@@ -7211,15 +7483,15 @@
                 <tr>
                     <td>${formatDate(row.transactionDate)}</td>
                     <td style="text-align: left;">${row.description || '-'}</td>
-                    <td style="color: ${(parseFloat(row.amount || 0) >= 0) ? '#16a34a' : '#dc2626'}; font-weight: 600;">
+                    <td style="color: var(--yws-teal-dark); font-weight: 600;">
                         ${parseFloat(row.amount || 0).toFixed(2)}
                     </td>
                     <td>${parseFloat(row.balance || 0).toFixed(2)}</td>
                     <td>${row.sourceFileName || '-'}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn-action btn-edit" onclick="editBankStatementRecord('${row.id || ''}')">✏️</button>
-                            <button class="btn-action btn-delete" onclick="deleteBankStatementRecord('${row.id || ''}')">🗑️</button>
+                            <button class="btn-action btn-edit" onclick="editBankStatementRecord('${row.id || ''}')">Edit</button>
+                            <button class="btn-action btn-delete" onclick="deleteBankStatementRecord('${row.id || ''}')">Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -7302,7 +7574,7 @@
             modal.className = 'edit-modal';
             modal.innerHTML = `
                 <div class="edit-modal-content">
-                    <h2>✏️ Edit Bank Transaction</h2>
+                    <h2>Edit Bank Transaction</h2>
                     <input type="hidden" id="bankStatementEditRecordId" value="${row.id || ''}">
                     <div class="edit-form-group">
                         <label>Transaction Date</label>
@@ -7325,7 +7597,7 @@
                         <input type="text" id="bankStatementEditSourceFile" value="${String(row.sourceFileName || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" placeholder="Source PDF file name">
                     </div>
                     <div class="edit-modal-buttons">
-                        <button class="btn btn-success" onclick="saveBankStatementRecordFromModal()">💾 Save Changes</button>
+                        <button class="btn btn-success" onclick="saveBankStatementRecordFromModal()">Save Changes</button>
                         <button class="btn btn-secondary" onclick="closeBankStatementEditModal()">Cancel</button>
                     </div>
                 </div>
@@ -7564,18 +7836,18 @@
         function showExpenseSettingsSection() {
             const content = `
                 <div class="section">
-                    <div class="section-header">💰 Expense Template Management</div>
+                    <div class="section-header">Expense Template Management</div>
                     <div class="section-content">
                         <div style="margin-bottom: 20px;">
                             <h3>Add New Expense Template</h3>
                             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                                <input type="text" id="newExpenseTemplate" placeholder="Enter expense name" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                <input type="text" id="newExpenseTemplate" placeholder="Enter expense name" style="flex: 1; padding: 10px; border: 1px solid var(--ent-border); border-radius: 4px;">
                                 <button onclick="addExpenseTemplateFromSettings()" class="btn btn-success">Add Template</button>
                             </div>
                         </div>
                         <div>
                             <h3>Current Expense Templates</h3>
-                            <div id="expenseTemplatesList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px;"></div>
+                            <div id="expenseTemplatesList" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--ent-border); padding: 15px; border-radius: 4px;"></div>
                         </div>
                     </div>
                 </div>
@@ -7587,18 +7859,18 @@
         function showSalarySettingsSection() {
             const content = `
                 <div class="section">
-                    <div class="section-header">👥 Salary Name Management</div>
+                    <div class="section-header">Salary Name Management</div>
                     <div class="section-content">
                         <div style="margin-bottom: 20px;">
                             <h3>Add New Salary Name</h3>
                             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                                <input type="text" id="newSalaryTemplate" placeholder="Enter salary name" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                <input type="text" id="newSalaryTemplate" placeholder="Enter salary name" style="flex: 1; padding: 10px; border: 1px solid var(--ent-border); border-radius: 4px;">
                                 <button onclick="addSalaryTemplateFromSettings()" class="btn btn-success">Add Salary Name</button>
                             </div>
                         </div>
                         <div>
                                 <h3>Current Salary Names</h3>
-                            <div id="salaryTemplatesList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px;"></div>
+                            <div id="salaryTemplatesList" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--ent-border); padding: 15px; border-radius: 4px;"></div>
                         </div>
                     </div>
                 </div>
@@ -7610,18 +7882,18 @@
         function showBankExpenseSettingsSection() {
             const content = `
                 <div class="section">
-                    <div class="section-header">🏦 Bank Expense Template Management</div>
+                    <div class="section-header">Bank Expense Template Management</div>
                     <div class="section-content">
                         <div style="margin-bottom: 20px;">
                             <h3>Add New Bank Expense Template</h3>
                             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                                <input type="text" id="newBankExpenseTemplate" placeholder="Enter bank expense name" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                <input type="text" id="newBankExpenseTemplate" placeholder="Enter bank expense name" style="flex: 1; padding: 10px; border: 1px solid var(--ent-border); border-radius: 4px;">
                                 <button onclick="addBankExpenseTemplateFromSettings()" class="btn btn-success">Add Template</button>
                             </div>
                         </div>
                         <div>
                             <h3>Current Bank Expense Templates</h3>
-                            <div id="bankExpenseTemplatesList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px;"></div>
+                            <div id="bankExpenseTemplatesList" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--ent-border); padding: 15px; border-radius: 4px;"></div>
                         </div>
                     </div>
                 </div>
@@ -7638,12 +7910,12 @@
 
             const content = `
                 <div class="section">
-                    <div class="section-header">📦 Product Settings</div>
+                    <div class="section-header">Product Settings</div>
                     <div class="section-content">
                         <div style="margin-bottom: 20px;">
                             <h3>Cigarette Products</h3>
                             <p>Manage cigarette brands and their default prices</p>
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                            <div style="background: var(--yws-canvas); padding: 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid var(--ent-border);">
                                 <strong>Current Products (${cigaretteProducts.length}):</strong><br>
                                 ${cigaretteProductsDisplay}
                             </div>
@@ -7652,7 +7924,7 @@
                         <div>
                             <h3>Rental Products</h3>
                             <p>Manage rental items and their default prices</p>
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                            <div style="background: var(--yws-canvas); padding: 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid var(--ent-border);">
                                 <strong>Current Rental Items:</strong><br>
                                 Wanton (RM 40), Pork Noodle (RM 40), Pan Mee (RM 35),<br>
                                 ChiCongFun (RM 35), Kampar (RM 35), Ipoh Sherred (RM 20),<br>
@@ -7669,7 +7941,7 @@
         function showRentalSettingsSection() {
             const content = `
                 <div class="section">
-                    <div class="section-header">🏠 Rental Collection Settings</div>
+                    <div class="section-header">Rental Collection Settings</div>
                     <div class="section-content">
                         <div style="margin-bottom: 20px;">
                             <h3>Add New Rental Collection</h3>
@@ -7699,19 +7971,19 @@
         function showDataManagementSection() {
             const content = `
                 <div class="section">
-                    <div class="section-header">💾 Data Management</div>
+                    <div class="section-header">Data Management</div>
                     <div class="section-content">
                         <div style="margin-bottom: 20px;">
                             <h3>Data Export & Import</h3>
                             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                                <button class="btn btn-success" onclick="exportData()">📤 Export Data</button>
+                                <button class="btn btn-success" onclick="exportData()">Export Data</button>
                                 <button class="btn btn-warning" onclick="importData()">📥 Import Data</button>
-                                <button class="btn btn-info" onclick="backupData()">💾 Backup Data</button>
+                                <button class="btn btn-info" onclick="backupData()">Backup Data</button>
                             </div>
                         </div>
                         <div style="margin-bottom: 20px;">
                             <h3>Data Statistics</h3>
-                            <div id="dataStats" style="background: #f8f9fa; padding: 15px; border-radius: 4px;">
+                            <div id="dataStats" style="background: var(--yws-canvas); padding: 15px; border-radius: 4px; border: 1px solid var(--ent-border);">
                                 <p><strong>Total Records:</strong> <span id="totalRecords">0</span></p>
                                 <p><strong>Date Range:</strong> <span id="dateRange">No data</span></p>
                                 <p><strong>Last Updated:</strong> <span id="lastUpdated">Never</span></p>
@@ -7719,7 +7991,7 @@
                         </div>
                         <div>
                             <h3>Data Cleanup</h3>
-                            <button class="btn btn-warning" onclick="clearOldData()">🗑️ Clear Old Data</button>
+                            <button class="btn btn-warning" onclick="clearOldData()">Clear Old Data</button>
                             <button class="btn btn-danger" onclick="resetAllData()">⚠️ Reset All Data</button>
                         </div>
                     </div>
@@ -7732,22 +8004,22 @@
         function showReportsSection() {
             const content = `
                 <div class="section">
-                    <div class="section-header">📈 Financial Reports</div>
+                    <div class="section-header">Financial Reports</div>
                     <div class="section-content">
                         <div style="margin-bottom: 20px;">
                             <h3>Generate Reports</h3>
                             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                                <button class="btn btn-primary" onclick="generateDailyReport()">📅 Daily Report</button>
-                                <button class="btn btn-primary" onclick="generateWeeklyReport()">📊 Weekly Report</button>
-                                <button class="btn btn-primary" onclick="generateMonthlyReport()">📈 Monthly Report</button>
-                                <button class="btn btn-success" onclick="generate30DaysReport()">📊 30 Days Report</button>
-                                <button class="btn btn-success" onclick="generate90DaysReport()">📊 90 Days Report</button>
-                                <button class="btn btn-info" onclick="generateCustomReport()">🔍 Custom Report</button>
+                                <button class="btn btn-primary" onclick="generateDailyReport()">Daily Report</button>
+                                <button class="btn btn-primary" onclick="generateWeeklyReport()">Weekly Report</button>
+                                <button class="btn btn-primary" onclick="generateMonthlyReport()">Monthly Report</button>
+                                <button class="btn btn-success" onclick="generate30DaysReport()">30 Days Report</button>
+                                <button class="btn btn-success" onclick="generate90DaysReport()">90 Days Report</button>
+                                <button class="btn btn-info" onclick="generateCustomReport()">Custom Report</button>
                             </div>
                         </div>
                         <div>
                             <h3>Quick Analytics</h3>
-                            <div id="quickAnalytics" style="background: #f8f9fa; padding: 15px; border-radius: 4px;">
+                            <div id="quickAnalytics" style="background: var(--yws-canvas); padding: 15px; border-radius: 4px; border: 1px solid var(--ent-border);">
                                 <p><strong>Today's Sales:</strong> <span id="todaySales">RM 0.00</span></p>
                                 <p><strong>This Week's Total:</strong> <span id="weekSales">RM 0.00</span></p>
                                 <p><strong>This Month's Total:</strong> <span id="monthSales">RM 0.00</span></p>
@@ -7762,8 +8034,8 @@
                         <div class="section-header">
                             <span id="reportTitle">Report</span>
                             <div style="float: right;">
-                                <button class="btn btn-success" onclick="exportReport()" style="margin-right: 10px;">📤 Export</button>
-                                <button class="btn btn-warning" onclick="printReport()">🖨️ Print</button>
+                                <button class="btn btn-success" onclick="exportReport()" style="margin-right: 10px;">Export</button>
+                                <button class="btn btn-warning" onclick="printReport()">Print</button>
                             </div>
                         </div>
                         <div class="section-content">
@@ -7773,7 +8045,7 @@
                 </div>
                 
                 <div class="charts-section">
-                    <h3 style="margin-bottom: 20px; color: #2c3e50;">📊 Financial Analytics Charts</h3>
+                    <h3 style="margin-bottom: 20px; color: var(--yws-forest-mid);">Financial Analytics Charts</h3>
                     
                     <div class="charts-grid">
                         <!-- Sales Chart -->
@@ -7857,10 +8129,10 @@
                     
                     <!-- Expenses Board Table -->
                     <div class="section" style="margin-top: 30px;">
-                        <div class="section-header">📋 Expenses Board</div>
+                        <div class="section-header">Expenses Board</div>
                         <div class="section-content">
                             <div style="margin-bottom: 15px;">
-                                <p style="color: #666;">View all expenses and bank expenses sorted by amount to see which expenses cost the most and least.</p>
+                                <p style="color: var(--ent-muted);">View all expenses and bank expenses sorted by amount to see which expenses cost the most and least.</p>
                                 <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                                     <button class="btn btn-primary" onclick="updateExpensesBoard('7days')">7 Days</button>
                                     <button class="btn btn-primary" onclick="updateExpensesBoard('30days')">30 Days</button>
@@ -7893,10 +8165,10 @@
                     
                     <!-- Cash Flow Analysis Table -->
                     <div class="section" style="margin-top: 30px;">
-                        <div class="section-header">💵 Cash Flow Analysis</div>
+                        <div class="section-header">Cash Flow Analysis</div>
                         <div class="section-content">
                             <div style="margin-bottom: 15px;">
-                                <p style="color: #666;">View cash flow details including Cash Received, TNG Received, Expenses, Salary, Grab, and Shopee for selected date range.</p>
+                                <p style="color: var(--ent-muted);">View cash flow details including Cash Received, TNG Received, Expenses, Salary, Grab, and Shopee for selected date range.</p>
                                 <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                                     <button class="btn btn-primary" onclick="updateCashFlowAnalysis('7days')">7 Days</button>
                                     <button class="btn btn-primary" onclick="updateCashFlowAnalysis('30days')">30 Days</button>
@@ -7946,20 +8218,20 @@
         function showNightReportsSection() {
             const content = `
                 <div class="section">
-                    <div class="section-header">🌙 Night Section Reports</div>
+                    <div class="section-header">Night Section Reports</div>
                     <div class="section-content">
                         <div style="margin-bottom: 20px;">
                             <h3>Generate Night Shift Reports</h3>
                             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                                <button class="btn btn-primary" onclick="generateNightDailyReport()">📅 Daily Report</button>
-                                <button class="btn btn-primary" onclick="generateNightWeeklyReport()">📊 Weekly Report</button>
-                                <button class="btn btn-primary" onclick="generateNightMonthlyReport()">📈 Monthly Report</button>
-                                <button class="btn btn-info" onclick="generateNightCustomReport()">🔍 Custom Report</button>
+                                <button class="btn btn-primary" onclick="generateNightDailyReport()">Daily Report</button>
+                                <button class="btn btn-primary" onclick="generateNightWeeklyReport()">Weekly Report</button>
+                                <button class="btn btn-primary" onclick="generateNightMonthlyReport()">Monthly Report</button>
+                                <button class="btn btn-info" onclick="generateNightCustomReport()">Custom Report</button>
                             </div>
                         </div>
                         <div>
                             <h3>Quick Analytics</h3>
-                            <div id="nightQuickAnalytics" style="background: #f8f9fa; padding: 15px; border-radius: 4px;">
+                            <div id="nightQuickAnalytics" style="background: var(--yws-canvas); padding: 15px; border-radius: 4px; border: 1px solid var(--ent-border);">
                                 <p><strong>Today's Night Sales:</strong> <span id="nightTodaySales">RM 0.00</span></p>
                                 <p><strong>This Week's Night Total:</strong> <span id="nightWeekSales">RM 0.00</span></p>
                                 <p><strong>This Month's Night Total:</strong> <span id="nightMonthSales">RM 0.00</span></p>
@@ -7974,8 +8246,8 @@
                         <div class="section-header">
                             <span id="nightReportTitle">Night Shift Report</span>
                             <div style="float: right;">
-                                <button class="btn btn-success" onclick="exportNightReport()" style="margin-right: 10px;">📤 Export</button>
-                                <button class="btn btn-warning" onclick="printNightReport()">🖨️ Print</button>
+                                <button class="btn btn-success" onclick="exportNightReport()" style="margin-right: 10px;">Export</button>
+                                <button class="btn btn-warning" onclick="printNightReport()">Print</button>
                             </div>
                         </div>
                         <div class="section-content">
@@ -7985,7 +8257,7 @@
                 </div>
                 
                 <div class="charts-section">
-                    <h3 style="margin-bottom: 20px; color: #2c3e50;">📊 Night Shift Analytics Charts</h3>
+                    <h3 style="margin-bottom: 20px; color: var(--yws-forest-mid);">Night Shift Analytics Charts</h3>
                     
                     <div class="charts-grid">
                         <!-- Night Sales Chart -->
@@ -8052,13 +8324,13 @@
         function showCombinationReportSection() {
             const content = `
                 <div class="section">
-                    <div class="section-header">🧾 Combination Report</div>
+                    <div class="section-header">Combination Report</div>
                     <div class="section-content">
                         <p style="margin-bottom: 10px;">View a combined report that includes both Morning Section (day) and Night Section data.</p>
                         <p style="margin-bottom: 20px;">All totals and daily rows follow the same layout as the main Monthly Report, but <strong>Sales</strong> and cash figures are the sum of Morning + Night for each date.</p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="btn btn-primary" onclick="generateCombinationMonthlyReport()">📈 Combination Monthly Report (Current Month)</button>
-                            <button class="btn btn-info" onclick="openCombinationCustomReportModal()">🔍 Custom Combination Report</button>
+                            <button class="btn btn-primary" onclick="generateCombinationMonthlyReport()">Combination Monthly Report (Current Month)</button>
+                            <button class="btn btn-info" onclick="openCombinationCustomReportModal()">Custom Combination Report</button>
                         </div>
                     </div>
                 </div>
@@ -8069,8 +8341,8 @@
                         <div class="section-header">
                             <span id="combinationReportTitle">Combination Report</span>
                             <div style="float: right;">
-                                <button class="btn btn-success" onclick="exportCombinationReport()" style="margin-right: 10px;">📤 Export</button>
-                                <button class="btn btn-warning" onclick="printCombinationReport()">🖨️ Print</button>
+                                <button class="btn btn-success" onclick="exportCombinationReport()" style="margin-right: 10px;">Export</button>
+                                <button class="btn btn-warning" onclick="printCombinationReport()">Print</button>
                             </div>
                         </div>
                         <div class="section-content">
@@ -8086,16 +8358,17 @@
 
         function showCsvImportSection() {
             const content = `
+                ${getImportSubNavHtml('bank')}
                 <div class="section">
-                    <div class="section-header">🏦 Bank Statement PDF Import</div>
+                    <div class="section-header">Bank Statement PDF Import</div>
                     <div class="section-content" style="display: flex; justify-content: center;">
-                        <div style="width: min(900px, 100%); text-align: center; border: 2px dashed #cfd8dc; padding: 26px; border-radius: 10px; background: #fafcfe;">
-                            <h3 style="margin-bottom: 8px; color: #2c3e50;">Upload Bank Statement PDF</h3>
-                            <p style="margin-bottom: 16px; color: #546e7a;">
+                        <div style="width: min(900px, 100%); text-align: center; border: 2px dashed var(--ent-border); padding: 26px; border-radius: 10px; background: #ffffff;">
+                            <h3 style="margin-bottom: 8px; color: var(--yws-forest-mid);">Upload Bank Statement PDF</h3>
+                            <p style="margin-bottom: 16px; color: var(--ent-muted);">
                                 Upload your bank statement PDF, review extracted transactions, then import to the bank statement database.
                             </p>
                             <div style="display: flex; justify-content: center; margin-bottom: 12px;">
-                                <span id="pdfParserStatusBadge" style="display: inline-block; padding: 6px 12px; border: 1px solid #93c5fd; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eff6ff; color: #1d4ed8;">
+                                <span id="pdfParserStatusBadge" style="display: inline-block; padding: 6px 12px; border: 1px solid var(--yws-teal); border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--yws-mint); color: var(--yws-teal-dark);">
                                     PDF Parser: Loading...
                                 </span>
                             </div>
@@ -8104,13 +8377,13 @@
                                 <button type="button" class="btn btn-success" id="bankPdfImportBtn" onclick="importBankPdfToDatabase()" disabled>Import Transactions</button>
                             </div>
                             <input type="file" id="bankPdfFileInput" accept=".pdf,application/pdf" onchange="handleBankPdfSelection(event)" style="display: none;">
-                            <p id="bankPdfSelectedFile" style="margin: 8px 0 0; color: #455a64; font-size: 14px;"></p>
+                            <p id="bankPdfSelectedFile" style="margin: 8px 0 0; color: var(--ent-muted); font-size: 14px;"></p>
                         </div>
                     </div>
                 </div>
 
                 <div class="section" id="bankPdfPreviewSection" style="display: none; margin-top: 20px;">
-                    <div class="section-header">📋 Extracted Transactions Preview</div>
+                    <div class="section-header">Extracted Transactions Preview</div>
                     <div class="section-content" style="overflow-x: auto;">
                         <table class="table">
                             <thead>
@@ -8137,21 +8410,21 @@
                         </div>
 
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px;">
-                            <div style="background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
-                                <div style="font-size: 12px; color: #166534;">Total Credits</div>
-                                <div style="font-weight: 700; color: #166534;">RM <span id="bankStatementTotalCredits">0.00</span></div>
+                            <div style="background: var(--yws-mint); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--yws-forest-mid);">Total Credits</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-mid);">RM <span id="bankStatementTotalCredits">0.00</span></div>
                             </div>
-                            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px;">
-                                <div style="font-size: 12px; color: #991b1b;">Total Debits</div>
-                                <div style="font-weight: 700; color: #991b1b;">RM <span id="bankStatementTotalDebits">0.00</span></div>
+                            <div style="background: var(--yws-canvas); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--yws-forest-mid);">Total Debits</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-mid);">RM <span id="bankStatementTotalDebits">0.00</span></div>
                             </div>
-                            <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 10px;">
-                                <div style="font-size: 12px; color: #312e81;">Net</div>
-                                <div style="font-weight: 700; color: #312e81;">RM <span id="bankStatementNet">0.00</span></div>
+                            <div style="background: var(--yws-canvas); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: #0f172a;">Net</div>
+                                <div style="font-weight: 700; color: #0f172a;">RM <span id="bankStatementNet">0.00</span></div>
                             </div>
-                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
-                                <div style="font-size: 12px; color: #334155;">Transactions</div>
-                                <div style="font-weight: 700; color: #0f172a;"><span id="bankStatementCount">0</span></div>
+                            <div style="background: var(--yws-canvas); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--ent-muted);">Transactions</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-deep);"><span id="bankStatementCount">0</span></div>
                             </div>
                         </div>
 
@@ -8177,7 +8450,7 @@
                 </div>
 
                 <div class="section" id="bankLatestImportSection" style="display: none; margin-top: 20px;">
-                    <div class="section-header">✅ Imported Transactions (Latest Import)</div>
+                    <div class="section-header">Imported Transactions (Latest Import)</div>
                     <div class="section-content" style="overflow-x: auto;">
                         <table class="table">
                             <thead>
@@ -8202,10 +8475,984 @@
             renderLatestImportedBankRows(latestImportedBankRows);
         }
 
+        let grabCsvImportData = [];
+        let shopeeCsvImportData = [];
+        let parsedGrabCsvRows = [];
+        let parsedShopeeCsvRows = [];
+        let latestImportedGrabRows = [];
+        let latestImportedShopeeRows = [];
+        let activeGrabCsvFileName = '';
+        let activeShopeeCsvFileName = '';
+
+        function parseGenericCsvRows(csvText) {
+            const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            if (lines.length < 2) return [];
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const dateIdx = headers.findIndex(h => h.includes('date'));
+            const amountIdx = headers.findIndex(h => h.includes('amount') || h.includes('total') || h.includes('value'));
+            const descIdx = headers.findIndex(h => h.includes('description') || h.includes('note') || h.includes('item') || h.includes('details'));
+            const out = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                if (!cols.length) continue;
+                const date = dateIdx >= 0 ? (cols[dateIdx] || '') : '';
+                const amountRaw = amountIdx >= 0 ? (cols[amountIdx] || '0') : '0';
+                const amount = parseFloat(String(amountRaw).replace(/[^0-9.\-]/g, '')) || 0;
+                const description = descIdx >= 0 ? (cols[descIdx] || '') : '';
+                if (!date && !description && amount === 0) continue;
+                out.push({ date, description, amount });
+            }
+            return out;
+        }
+
+        function getCsvImportState(type) {
+            if (type === 'grab') {
+                return {
+                    rows: parsedGrabCsvRows,
+                    setRows: (rows) => { parsedGrabCsvRows = rows; },
+                    latestRows: latestImportedGrabRows,
+                    setLatestRows: (rows) => { latestImportedGrabRows = rows; },
+                    data: grabCsvImportData,
+                    setData: (rows) => { grabCsvImportData = rows; },
+                    activeFile: activeGrabCsvFileName,
+                    setActiveFile: (name) => { activeGrabCsvFileName = name; },
+                    sourceLabel: 'Grab',
+                    collection: COLLECTIONS.GRAB_CSV_IMPORTS,
+                    storageKey: 'grabCsvImportTransactions',
+                    previewTbodyId: 'grabCsvPreviewTableBody',
+                    previewSectionId: 'grabCsvPreviewSection',
+                    selectedFileId: 'grabCsvSelectedFile',
+                    fileInputId: 'grabCsvFileInput',
+                    importBtnId: 'grabCsvImportBtn',
+                    monthFilterId: 'grabCsvMonthFilter',
+                    searchFilterId: 'grabCsvSearchFilter',
+                    historyBodyId: 'grabCsvHistoryBody',
+                    noHistoryId: 'noGrabCsvHistoryMessage',
+                    latestSectionId: 'grabLatestImportSection',
+                    latestBodyId: 'grabLatestImportTableBody',
+                    summaryCreditsId: 'grabCsvTotalCredits',
+                    summaryDebitsId: 'grabCsvTotalDebits',
+                    summaryNetId: 'grabCsvNet',
+                    summaryCountId: 'grabCsvCount',
+                    editModalId: 'grabCsvEditModal',
+                    editPrefix: 'grabCsvEdit',
+                    exportFilenamePrefix: 'grab_csv_import_history'
+                };
+            }
+            return {
+                rows: parsedShopeeCsvRows,
+                setRows: (rows) => { parsedShopeeCsvRows = rows; },
+                latestRows: latestImportedShopeeRows,
+                setLatestRows: (rows) => { latestImportedShopeeRows = rows; },
+                data: shopeeCsvImportData,
+                setData: (rows) => { shopeeCsvImportData = rows; },
+                activeFile: activeShopeeCsvFileName,
+                setActiveFile: (name) => { activeShopeeCsvFileName = name; },
+                sourceLabel: 'Shopee',
+                collection: COLLECTIONS.SHOPEE_CSV_IMPORTS,
+                storageKey: 'shopeeCsvImportTransactions',
+                previewTbodyId: 'shopeeCsvPreviewTableBody',
+                previewSectionId: 'shopeeCsvPreviewSection',
+                selectedFileId: 'shopeeCsvSelectedFile',
+                fileInputId: 'shopeeCsvFileInput',
+                importBtnId: 'shopeeCsvImportBtn',
+                monthFilterId: 'shopeeCsvMonthFilter',
+                searchFilterId: 'shopeeCsvSearchFilter',
+                historyBodyId: 'shopeeCsvHistoryBody',
+                noHistoryId: 'noShopeeCsvHistoryMessage',
+                latestSectionId: 'shopeeLatestImportSection',
+                latestBodyId: 'shopeeLatestImportTableBody',
+                summaryCreditsId: 'shopeeCsvTotalCredits',
+                summaryDebitsId: 'shopeeCsvTotalDebits',
+                summaryNetId: 'shopeeCsvNet',
+                summaryCountId: 'shopeeCsvCount',
+                editModalId: 'shopeeCsvEditModal',
+                editPrefix: 'shopeeCsvEdit',
+                exportFilenamePrefix: 'shopee_csv_import_history'
+            };
+        }
+
+        function renderGenericCsvPreviewRows(type, rows) {
+            const state = getCsvImportState(type);
+            const tbody = document.getElementById(state.previewTbodyId);
+            const section = document.getElementById(state.previewSectionId);
+            if (!tbody) return;
+            if (!rows.length) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--ent-muted); padding: 12px;">No ${state.sourceLabel} rows detected.</td></tr>`;
+                if (section) section.style.display = 'none';
+                return;
+            }
+            tbody.innerHTML = rows.map(r => `
+                <tr>
+                    <td>${escapeHtml(r.transactionDate || r.date || '-')}</td>
+                    <td>${escapeHtml(r.description || '-')}</td>
+                    <td>${Number(r.amount || 0).toFixed(2)}</td>
+                    <td>${state.sourceLabel}</td>
+                </tr>
+            `).join('');
+            if (section) section.style.display = 'block';
+        }
+
+        function normalizeGenericCsvDate(rawDate) {
+            return normalizeDateInput(rawDate) || '';
+        }
+
+        function mapGenericCsvRows(rows) {
+            return (rows || []).map(row => ({
+                transactionDate: normalizeGenericCsvDate(row.date) || row.date || '',
+                description: String(row.description || '').trim(),
+                amount: Number(parseFloat(row.amount || 0).toFixed(2)),
+                balance: 0,
+                rawLine: `${row.date || ''},${row.description || ''},${row.amount || 0}`
+            })).filter(row => row.transactionDate && row.description && Number.isFinite(row.amount));
+        }
+
+        function splitCsvLine(line) {
+            const out = [];
+            let cur = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        cur += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (ch === ',' && !inQuotes) {
+                    out.push(cur);
+                    cur = '';
+                } else {
+                    cur += ch;
+                }
+            }
+            out.push(cur);
+            return out.map(v => String(v || '').trim());
+        }
+
+        function parseGrabRowsFromCsvText(csvText) {
+            const lines = String(csvText || '').split(/\r?\n/).filter(Boolean);
+            if (lines.length < 2) return [];
+            const headers = splitCsvLine(lines[0]).map(h => h.toLowerCase());
+            const idx = {
+                updatedOn: headers.indexOf('updated on'),
+                transferDate: headers.indexOf('transfer date'),
+                type: headers.indexOf('type'),
+                category: headers.indexOf('category'),
+                subcategory: headers.indexOf('subcategory'),
+                status: headers.indexOf('status'),
+                transactionId: headers.indexOf('transaction id'),
+                longOrderId: headers.indexOf('long order id'),
+                shortOrderId: headers.indexOf('short order id'),
+                orderChannel: headers.indexOf('order channel'),
+                amount: headers.indexOf('amount'),
+                total: headers.indexOf('total'),
+                description: headers.indexOf('description')
+            };
+
+            if (idx.amount === -1 || idx.updatedOn === -1) return [];
+
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = splitCsvLine(lines[i]);
+                const amountRaw = idx.amount >= 0 ? cols[idx.amount] : '';
+                const amount = parseFloat(String(amountRaw || '').replace(/[^0-9.\-]/g, ''));
+                if (!Number.isFinite(amount)) continue;
+
+                const status = idx.status >= 0 ? String(cols[idx.status] || '').trim() : '';
+                const type = idx.type >= 0 ? String(cols[idx.type] || '').trim() : 'Grab';
+                const category = idx.category >= 0 ? String(cols[idx.category] || '').trim() : '';
+                const subcategory = idx.subcategory >= 0 ? String(cols[idx.subcategory] || '').trim() : '';
+                const shortOrderId = idx.shortOrderId >= 0 ? String(cols[idx.shortOrderId] || '').trim() : '';
+                const txId = idx.transactionId >= 0 ? String(cols[idx.transactionId] || '').trim() : '';
+                const channel = idx.orderChannel >= 0 ? String(cols[idx.orderChannel] || '').trim() : '';
+                const freeText = idx.description >= 0 ? String(cols[idx.description] || '').trim() : '';
+
+                const dateRaw = (idx.transferDate >= 0 ? cols[idx.transferDate] : '') || (idx.updatedOn >= 0 ? cols[idx.updatedOn] : '');
+                const transactionDate = normalizeDateInput(String(dateRaw || '').slice(0, 10)) || normalizeDateInput(dateRaw) || new Date().toISOString().split('T')[0];
+
+                const bits = [
+                    type || 'Grab',
+                    category,
+                    subcategory,
+                    status ? `Status: ${status}` : '',
+                    shortOrderId ? `Order: ${shortOrderId}` : '',
+                    txId ? `Txn: ${txId}` : '',
+                    channel ? `Channel: ${channel}` : '',
+                    freeText ? `Note: ${freeText}` : ''
+                ].filter(Boolean);
+
+                rows.push({
+                    transactionDate,
+                    description: bits.join(' | '),
+                    amount: Number(amount.toFixed(2)),
+                    balance: 0,
+                    rawLine: lines[i]
+                });
+            }
+            return rows;
+        }
+
+        function handleGenericCsvSelection(type, event) {
+            const state = getCsvImportState(type);
+            const file = event?.target?.files?.[0];
+            const selectedEl = document.getElementById(state.selectedFileId);
+            const importBtn = document.getElementById(state.importBtnId);
+            if (!file) {
+                state.setRows([]);
+                state.setActiveFile('');
+                if (selectedEl) selectedEl.textContent = '';
+                if (importBtn) importBtn.disabled = true;
+                renderGenericCsvPreviewRows(type, []);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const text = String(reader.result || '');
+                const parsed = mapGenericCsvRows(parseGenericCsvRows(text));
+                if (!parsed.length) {
+                    alert(`No transactions detected in this ${state.sourceLabel} CSV. Please check the file format.`);
+                }
+                state.setRows(parsed);
+                state.setActiveFile(file.name);
+                if (selectedEl) selectedEl.textContent = `Selected: ${file.name}`;
+                if (importBtn) importBtn.disabled = parsed.length === 0;
+                renderGenericCsvPreviewRows(type, parsed);
+                if (parsed.length) {
+                    alert(`${state.sourceLabel} CSV parsed successfully. ${parsed.length} transaction(s) ready to import.`);
+                }
+            };
+            reader.onerror = () => {
+                state.setRows([]);
+                state.setActiveFile('');
+                if (selectedEl) selectedEl.textContent = 'Unable to read CSV file.';
+                if (importBtn) importBtn.disabled = true;
+                renderGenericCsvPreviewRows(type, []);
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function handleGrabCsvSelection(event) {
+            const state = getCsvImportState('grab');
+            const file = event?.target?.files?.[0];
+            const selectedEl = document.getElementById(state.selectedFileId);
+            const importBtn = document.getElementById(state.importBtnId);
+            if (!file) {
+                state.setRows([]);
+                state.setActiveFile('');
+                if (selectedEl) selectedEl.textContent = '';
+                if (importBtn) importBtn.disabled = true;
+                renderGenericCsvPreviewRows('grab', []);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                const text = String(reader.result || '');
+                const parsed = parseGrabRowsFromCsvText(text);
+                if (!parsed.length) {
+                    alert('No transactions detected in this Grab CSV. Please use Grab Transaction Store export format.');
+                }
+                state.setRows(parsed);
+                state.setActiveFile(file.name);
+                if (selectedEl) selectedEl.textContent = `Selected: ${file.name}`;
+                if (importBtn) importBtn.disabled = parsed.length === 0;
+                renderGenericCsvPreviewRows('grab', parsed);
+                if (parsed.length) {
+                    alert(`Grab CSV parsed successfully. ${parsed.length} transaction(s) ready to import.`);
+                }
+            };
+            reader.onerror = () => {
+                state.setRows([]);
+                state.setActiveFile('');
+                if (selectedEl) selectedEl.textContent = 'Unable to read Grab CSV file.';
+                if (importBtn) importBtn.disabled = true;
+                renderGenericCsvPreviewRows('grab', []);
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function extractDateFromImportFileName(fileName) {
+            const fromIso = String(fileName || '').match(/(\d{4}-\d{2}-\d{2})t/i);
+            if (fromIso && fromIso[1]) return fromIso[1];
+            const fromPlain = String(fileName || '').match(/(\d{4}-\d{2}-\d{2})/);
+            if (fromPlain && fromPlain[1]) return fromPlain[1];
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function toShopeeNumber(value) {
+            const parsed = parseFloat(String(value ?? '').replace(/[^0-9.\-]/g, ''));
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function parseShopeeRowsFromSheetRows(rows, fallbackDate) {
+            if (!Array.isArray(rows) || rows.length < 2) return [];
+            const headers = rows[0].map(h => String(h || '').trim().toLowerCase());
+            const idx = {
+                sku: headers.findIndex(h => h === 'sku'),
+                name: headers.findIndex(h => h === 'name'),
+                category: headers.findIndex(h => h === 'category'),
+                grossSales: headers.findIndex(h => h === 'gross sales'),
+                salesAfterDiscount: headers.findIndex(h => h === 'sales after discount'),
+                qty: headers.findIndex(h => h === 'qty')
+            };
+
+            // Validate Shopee merchant best-seller template shape
+            if (idx.name === -1 || (idx.salesAfterDiscount === -1 && idx.grossSales === -1)) return [];
+
+            const out = [];
+            for (let i = 1; i < rows.length; i++) {
+                const r = rows[i] || [];
+                const sku = idx.sku >= 0 ? String(r[idx.sku] ?? '').trim() : '';
+                const name = idx.name >= 0 ? String(r[idx.name] ?? '').trim() : '';
+                const category = idx.category >= 0 ? String(r[idx.category] ?? '').trim() : '';
+                const qty = idx.qty >= 0 ? String(r[idx.qty] ?? '').trim() : '';
+                const amountSource = idx.salesAfterDiscount >= 0 ? r[idx.salesAfterDiscount] : r[idx.grossSales];
+                const amount = toShopeeNumber(amountSource);
+                if (!name || !Number.isFinite(amount)) continue;
+
+                const detailBits = [sku ? `SKU: ${sku}` : '', category ? `Category: ${category}` : '', qty ? `Qty: ${qty}` : ''].filter(Boolean);
+                out.push({
+                    transactionDate: fallbackDate,
+                    description: `${name}${detailBits.length ? ` (${detailBits.join(' | ')})` : ''}`,
+                    amount: Number(amount.toFixed(2)),
+                    balance: 0,
+                    rawLine: JSON.stringify(r)
+                });
+            }
+            return out;
+        }
+
+        function parseShopeeRowsFromCsvText(csvText, fallbackDate) {
+            const lines = String(csvText || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            if (lines.length < 2) return [];
+            const rows = lines.map(line => line.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
+            return parseShopeeRowsFromSheetRows(rows, fallbackDate);
+        }
+
+        async function handleShopeeFileSelection(event) {
+            const state = getCsvImportState('shopee');
+            const file = event?.target?.files?.[0];
+            const selectedEl = document.getElementById(state.selectedFileId);
+            const importBtn = document.getElementById(state.importBtnId);
+
+            if (!file) {
+                state.setRows([]);
+                state.setActiveFile('');
+                if (selectedEl) selectedEl.textContent = '';
+                if (importBtn) importBtn.disabled = true;
+                renderGenericCsvPreviewRows('shopee', []);
+                return;
+            }
+
+            const fallbackDate = extractDateFromImportFileName(file.name);
+            try {
+                let parsed = [];
+                const lower = file.name.toLowerCase();
+
+                if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
+                    if (!window.XLSX) throw new Error('XLSX parser not loaded.');
+                    const buffer = await file.arrayBuffer();
+                    const wb = window.XLSX.read(buffer, { type: 'array' });
+                    const sheetName = wb.SheetNames[0];
+                    const ws = wb.Sheets[sheetName];
+                    const rows = window.XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
+                    parsed = parseShopeeRowsFromSheetRows(rows, fallbackDate);
+                } else {
+                    const text = await file.text();
+                    parsed = parseShopeeRowsFromCsvText(text, fallbackDate);
+                }
+
+                if (!parsed.length) {
+                    alert('No transactions detected in this Shopee file. Please use Shopee merchant best_seller__merchant__v2 format.');
+                }
+
+                state.setRows(parsed);
+                state.setActiveFile(file.name);
+                if (selectedEl) selectedEl.textContent = `Selected: ${file.name}`;
+                if (importBtn) importBtn.disabled = parsed.length === 0;
+                renderGenericCsvPreviewRows('shopee', parsed);
+
+                if (parsed.length) {
+                    alert(`Shopee file parsed successfully. ${parsed.length} transaction(s) ready to import.`);
+                }
+            } catch (error) {
+                console.error('Shopee file parse failed:', error);
+                state.setRows([]);
+                state.setActiveFile('');
+                if (selectedEl) selectedEl.textContent = 'Unable to parse Shopee file.';
+                if (importBtn) importBtn.disabled = true;
+                renderGenericCsvPreviewRows('shopee', []);
+                alert(`Failed to parse Shopee file: ${error.message}`);
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        function handleShopeeCsvSelection(event) {
+            handleShopeeFileSelection(event);
+        }
+
+        function renderLatestImportedCsvRows(type, rows) {
+            const state = getCsvImportState(type);
+            const section = document.getElementById(state.latestSectionId);
+            const tbody = document.getElementById(state.latestBodyId);
+            if (!section || !tbody) return;
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                section.style.display = 'none';
+                tbody.innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => `
+                <tr>
+                    <td>${row.transactionDate || '-'}</td>
+                    <td style="text-align: left;">${row.description || '-'}</td>
+                    <td>${Number.isFinite(parseFloat(row.amount)) ? parseFloat(row.amount).toFixed(2) : '-'}</td>
+                    <td style="font-weight: 600; color: ${
+                        row.status === 'imported' ? '#166534' :
+                        row.status === 'imported (local)' ? '#0f766e' :
+                        row.status === 'skipped' ? '#9a3412' : '#991b1b'
+                    };">
+                        ${row.status || '-'}
+                    </td>
+                </tr>
+            `).join('');
+            section.style.display = 'block';
+        }
+
+        async function loadCsvImportData(type) {
+            const state = getCsvImportState(type);
+            try {
+                state.setData(await getFromFirestore(state.collection));
+            } catch (error) {
+                console.error(`Unable to load ${state.sourceLabel} CSV transactions:`, error);
+                state.setData(JSON.parse(localStorage.getItem(state.storageKey)) || []);
+            }
+        }
+
+        function updateCsvImportHistorySummary(type, rows) {
+            const state = getCsvImportState(type);
+            const totalCreditsEl = document.getElementById(state.summaryCreditsId);
+            const totalDebitsEl = document.getElementById(state.summaryDebitsId);
+            const netEl = document.getElementById(state.summaryNetId);
+            const countEl = document.getElementById(state.summaryCountId);
+            if (!totalCreditsEl || !totalDebitsEl || !netEl || !countEl) return;
+
+            const totals = rows.reduce((acc, row) => {
+                const amount = parseFloat(row.amount || 0);
+                if (amount >= 0) acc.credits += amount;
+                else acc.debits += Math.abs(amount);
+                acc.net += amount;
+                return acc;
+            }, { credits: 0, debits: 0, net: 0 });
+
+            totalCreditsEl.textContent = totals.credits.toFixed(2);
+            totalDebitsEl.textContent = totals.debits.toFixed(2);
+            netEl.textContent = totals.net.toFixed(2);
+            countEl.textContent = String(rows.length);
+        }
+
+        function renderCsvImportHistoryTable(type, rows) {
+            const state = getCsvImportState(type);
+            const tbody = document.getElementById(state.historyBodyId);
+            const empty = document.getElementById(state.noHistoryId);
+            if (!tbody || !empty) return;
+
+            if (!rows.length) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                updateCsvImportHistorySummary(type, []);
+                return;
+            }
+
+            empty.style.display = 'none';
+            const sorted = [...rows].sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+            tbody.innerHTML = sorted.map((row) => `
+                <tr>
+                    <td>${formatDate(row.transactionDate)}</td>
+                    <td style="text-align: left;">
+                        ${row.description || '-'}
+                        ${row?.syncInfo?.firestoreSync === 'failed'
+                            ? '<div style="margin-top:4px;"><span style="display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; background:var(--yws-mint); color:var(--yws-teal-dark); border:1px solid var(--yws-teal);">Local only (not synced)</span></div>'
+                            : ''}
+                    </td>
+                    <td style="color: var(--yws-teal-dark); font-weight: 600;">
+                        ${parseFloat(row.amount || 0).toFixed(2)}
+                    </td>
+                    <td>${row.sourceFileName || '-'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-edit" onclick="editCsvImportRecord('${type}', '${row.id || ''}')">Edit</button>
+                            <button class="btn-action btn-delete" onclick="deleteCsvImportRecord('${type}', '${row.id || ''}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            updateCsvImportHistorySummary(type, sorted);
+        }
+
+        function getFilteredCsvImportRows(type) {
+            const state = getCsvImportState(type);
+            const monthFilter = document.getElementById(state.monthFilterId)?.value || '';
+            const search = (document.getElementById(state.searchFilterId)?.value || '').toLowerCase().trim();
+
+            return (state.data || []).filter((row) => {
+                const rowMonth = String(row.transactionDate || '').slice(0, 7);
+                const monthMatch = !monthFilter || rowMonth === monthFilter;
+                if (!monthMatch) return false;
+                if (!search) return true;
+                const haystack = [row.transactionDate, row.description, row.amount, row.sourceFileName].join(' ').toLowerCase();
+                return haystack.includes(search);
+            });
+        }
+
+        function filterCsvImportHistory(type) {
+            renderCsvImportHistoryTable(type, getFilteredCsvImportRows(type));
+        }
+
+        function clearCsvImportFilters(type) {
+            const state = getCsvImportState(type);
+            const monthFilter = document.getElementById(state.monthFilterId);
+            const searchFilter = document.getElementById(state.searchFilterId);
+            if (monthFilter) monthFilter.value = '';
+            if (searchFilter) searchFilter.value = '';
+            filterCsvImportHistory(type);
+        }
+
+        function closeCsvImportEditModal(type) {
+            const state = getCsvImportState(type);
+            const modal = document.getElementById(state.editModalId);
+            if (modal) modal.remove();
+        }
+
+        function editCsvImportRecord(type, recordId) {
+            const state = getCsvImportState(type);
+            const row = (state.data || []).find((item) => item.id === recordId);
+            if (!row) {
+                alert('Transaction not found.');
+                return;
+            }
+
+            closeCsvImportEditModal(type);
+            const safeDescription = String(row.description || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            const modal = document.createElement('div');
+            modal.id = state.editModalId;
+            modal.className = 'edit-modal';
+            modal.innerHTML = `
+                <div class="edit-modal-content">
+                    <h2>Edit ${state.sourceLabel} CSV Transaction</h2>
+                    <input type="hidden" id="${state.editPrefix}RecordId" value="${row.id || ''}">
+                    <div class="edit-form-group">
+                        <label>Transaction Date</label>
+                        <input type="date" id="${state.editPrefix}Date" value="${row.transactionDate || ''}">
+                    </div>
+                    <div class="edit-form-group">
+                        <label>Description</label>
+                        <input type="text" id="${state.editPrefix}Description" value="${safeDescription}" placeholder="Transaction description">
+                    </div>
+                    <div class="edit-form-group">
+                        <label>Amount</label>
+                        <input type="number" id="${state.editPrefix}Amount" value="${parseFloat(row.amount || 0).toFixed(2)}" step="0.01">
+                    </div>
+                    <div class="edit-form-group">
+                        <label>Source File</label>
+                        <input type="text" id="${state.editPrefix}SourceFile" value="${String(row.sourceFileName || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" placeholder="Source CSV file name">
+                    </div>
+                    <div class="edit-modal-buttons">
+                        <button class="btn btn-success" onclick="saveCsvImportRecordFromModal('${type}')">Save Changes</button>
+                        <button class="btn btn-secondary" onclick="closeCsvImportEditModal('${type}')">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function saveCsvImportRecordFromModal(type) {
+            const state = getCsvImportState(type);
+            const recordId = document.getElementById(`${state.editPrefix}RecordId`)?.value || '';
+            const row = (state.data || []).find((item) => item.id === recordId);
+            if (!row) {
+                alert('Transaction not found.');
+                return;
+            }
+
+            const normalizedDate = normalizeDateInput(document.getElementById(`${state.editPrefix}Date`)?.value || '');
+            if (!normalizedDate) return alert('Invalid date format.');
+            const description = String(document.getElementById(`${state.editPrefix}Description`)?.value || '').trim();
+            if (!description) return alert('Description cannot be empty.');
+            const amount = parseFloat(String(document.getElementById(`${state.editPrefix}Amount`)?.value || '').replace(/,/g, '').trim());
+            if (!Number.isFinite(amount)) return alert('Invalid amount value.');
+
+            const sourceFileName = String(document.getElementById(`${state.editPrefix}SourceFile`)?.value || '').trim();
+            const payload = {
+                transactionDate: normalizedDate,
+                description,
+                amount: amount.toFixed(2),
+                sourceFileName,
+                syncInfo: {
+                    ...(row.syncInfo || {}),
+                    lastModified: new Date(),
+                    source: `${type}-csv-manual-edit`
+                }
+            };
+
+            try {
+                if (row.id) await updateFirestoreDoc(state.collection, row.id, payload);
+                const idx = state.data.findIndex((item) => item.id === recordId);
+                if (idx !== -1) state.data[idx] = { ...state.data[idx], ...payload };
+                localStorage.setItem(state.storageKey, JSON.stringify(state.data));
+                closeCsvImportEditModal(type);
+                filterCsvImportHistory(type);
+                alert(`${state.sourceLabel} CSV transaction updated successfully.`);
+            } catch (error) {
+                console.error(`Error updating ${state.sourceLabel} CSV transaction:`, error);
+                alert('Failed to update transaction. Please try again.');
+            }
+        }
+
+        async function deleteCsvImportRecord(type, recordId) {
+            const state = getCsvImportState(type);
+            const row = (state.data || []).find((item) => item.id === recordId);
+            if (!row) return alert('Transaction not found.');
+            if (!confirm(`Delete this transaction?\n${row.transactionDate} | ${row.description} | ${parseFloat(row.amount || 0).toFixed(2)}`)) return;
+
+            try {
+                if (row.id) await deleteFromFirestore(state.collection, row.id);
+                state.setData((state.data || []).filter((item) => item.id !== recordId));
+                localStorage.setItem(state.storageKey, JSON.stringify(state.data));
+                filterCsvImportHistory(type);
+                alert(`${state.sourceLabel} CSV transaction deleted successfully.`);
+            } catch (error) {
+                console.error(`Error deleting ${state.sourceLabel} CSV transaction:`, error);
+                alert('Failed to delete transaction. Please try again.');
+            }
+        }
+
+        function exportCsvImportHistory(type) {
+            const state = getCsvImportState(type);
+            const rows = getFilteredCsvImportRows(type);
+            if (!rows.length) {
+                alert(`No ${state.sourceLabel} CSV records to export.`);
+                return;
+            }
+            let csv = 'Transaction Date,Description,Amount,Source File\n';
+            rows.forEach((row) => {
+                const escapedDescription = `"${String(row.description || '').replace(/"/g, '""')}"`;
+                const escapedFile = `"${String(row.sourceFileName || '').replace(/"/g, '""')}"`;
+                csv += `${row.transactionDate},${escapedDescription},${parseFloat(row.amount || 0).toFixed(2)},${escapedFile}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${state.exportFilenamePrefix}_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert(`${state.sourceLabel} CSV history exported successfully.`);
+        }
+
+        async function importCsvRowsToDatabase(type) {
+            const state = getCsvImportState(type);
+            const rows = state.rows || [];
+            if (!rows.length) {
+                alert(`Please parse a ${state.sourceLabel} CSV file first.`);
+                return;
+            }
+            if (!confirm(`Import ${rows.length} ${state.sourceLabel} transaction(s) to database?`)) return;
+
+            await loadCsvImportData(type);
+
+            let overwriteAll = null;
+            let imported = 0;
+            let skipped = 0;
+            let failed = 0;
+            const importResults = [];
+
+            for (const txRow of rows) {
+                try {
+                    const existing = (state.data || []).find(record =>
+                        record.transactionDate === txRow.transactionDate &&
+                        String(record.description || '').trim().toLowerCase() === txRow.description.trim().toLowerCase() &&
+                        Number(parseFloat(record.amount || 0).toFixed(2)) === Number(txRow.amount.toFixed(2))
+                    );
+
+                    if (existing) {
+                        if (overwriteAll === null) {
+                            overwriteAll = confirm(`Some ${state.sourceLabel} transactions already exist. Click OK to overwrite duplicates, or Cancel to skip duplicates.`);
+                        }
+                        if (!overwriteAll) {
+                            skipped++;
+                            importResults.push({ ...txRow, status: 'skipped' });
+                            continue;
+                        }
+                    }
+
+                    const nowIso = new Date().toISOString();
+                    const payload = {
+                        transactionDate: txRow.transactionDate,
+                        description: txRow.description,
+                        amount: txRow.amount.toFixed(2),
+                        balance: 0,
+                        rawLine: txRow.rawLine,
+                        sourceFileName: state.activeFile,
+                        importSource: type,
+                        syncInfo: {
+                            lastModified: new Date(),
+                            version: '1.0',
+                            source: `${type}-csv`
+                        },
+                        metadata: {
+                            importedAt: nowIso,
+                            userAgent: navigator.userAgent,
+                            platform: navigator.platform,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        }
+                    };
+
+                    let updatedRecord;
+                    if (existing && existing.id) {
+                        await updateFirestoreDoc(state.collection, existing.id, payload);
+                        updatedRecord = { ...existing, ...payload, updatedAt: nowIso };
+                    } else {
+                        const docId = await saveToFirestore(state.collection, payload);
+                        updatedRecord = { id: docId, ...payload, createdAt: nowIso, updatedAt: nowIso };
+                    }
+
+                    const existingIndex = state.data.findIndex(record => record.id === updatedRecord.id);
+                    if (existingIndex !== -1) state.data[existingIndex] = updatedRecord;
+                    else state.data.push(updatedRecord);
+
+                    imported++;
+                    importResults.push({ ...txRow, status: 'imported' });
+                } catch (error) {
+                    // Firestore write might fail for permission reasons; keep import functional via local fallback.
+                    const nowIso = new Date().toISOString();
+                    const fallbackRecord = {
+                        id: `local-${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                        transactionDate: txRow.transactionDate,
+                        description: txRow.description,
+                        amount: txRow.amount.toFixed(2),
+                        balance: 0,
+                        rawLine: txRow.rawLine,
+                        sourceFileName: state.activeFile,
+                        importSource: type,
+                        syncInfo: {
+                            lastModified: new Date(),
+                            version: '1.0',
+                            source: `${type}-csv-local-fallback`,
+                            firestoreSync: 'failed'
+                        },
+                        metadata: {
+                            importedAt: nowIso,
+                            userAgent: navigator.userAgent,
+                            platform: navigator.platform,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                        },
+                        createdAt: nowIso,
+                        updatedAt: nowIso
+                    };
+                    state.data.push(fallbackRecord);
+                    imported++;
+                    console.warn(`${state.sourceLabel} Firestore import failed, saved locally instead:`, error);
+                    importResults.push({ ...txRow, status: 'imported (local)' });
+                }
+            }
+
+            localStorage.setItem(state.storageKey, JSON.stringify(state.data));
+            state.setLatestRows(importResults);
+            renderLatestImportedCsvRows(type, importResults);
+            const footer = failed > 0 ? `\nFailed: ${failed}` : '';
+            alert(`${state.sourceLabel} CSV import complete.\nImported: ${imported}\nSkipped: ${skipped}${footer}`);
+            filterCsvImportHistory(type);
+        }
+
+        function importGrabCsvToDatabase() { importCsvRowsToDatabase('grab'); }
+        function importShopeeCsvToDatabase() { importCsvRowsToDatabase('shopee'); }
+
+        function filterGrabCsvHistory() { filterCsvImportHistory('grab'); }
+        function filterShopeeCsvHistory() { filterCsvImportHistory('shopee'); }
+        function clearGrabCsvFilters() { clearCsvImportFilters('grab'); }
+        function clearShopeeCsvFilters() { clearCsvImportFilters('shopee'); }
+        function exportGrabCsvHistory() { exportCsvImportHistory('grab'); }
+        function exportShopeeCsvHistory() { exportCsvImportHistory('shopee'); }
+
+        function showGrabCsvImportSection() {
+            const content = `
+                ${getImportSubNavHtml('grab')}
+                <div class="section">
+                    <div class="section-header">Grab CSV Import</div>
+                    <div class="section-content" style="display: flex; justify-content: center;">
+                        <div style="width: min(900px, 100%); text-align: center; border: 2px dashed var(--ent-border); padding: 26px; border-radius: 10px; background: #ffffff;">
+                            <h3 style="margin-bottom: 8px; color: var(--yws-forest-mid);">Upload Grab CSV</h3>
+                            <p style="margin-bottom: 16px; color: var(--ent-muted);">Upload a Grab settlement CSV file, preview rows, then import.</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 10px;">
+                                <button type="button" class="btn btn-info" onclick="document.getElementById('grabCsvFileInput').click()">Choose Grab CSV</button>
+                                <button type="button" class="btn btn-success" id="grabCsvImportBtn" onclick="importGrabCsvToDatabase()" disabled>Import Grab Rows</button>
+                            </div>
+                            <input type="file" id="grabCsvFileInput" accept=".csv,text/csv" onchange="handleGrabCsvSelection(event)" style="display: none;">
+                            <p id="grabCsvSelectedFile" style="margin: 8px 0 0; color: var(--ent-muted); font-size: 14px;"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="section" id="grabCsvPreviewSection" style="display: none; margin-top: 20px;">
+                    <div class="section-header">Grab CSV Preview</div>
+                    <div class="section-content" style="overflow-x: auto;">
+                        <table class="table">
+                            <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Source</th></tr></thead>
+                            <tbody id="grabCsvPreviewTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="section" style="margin-top: 20px;">
+                    <div class="section-header">Grab CSV History</div>
+                    <div class="section-content">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                            <input type="month" id="grabCsvMonthFilter" class="input-app" onchange="filterGrabCsvHistory()">
+                            <input type="text" id="grabCsvSearchFilter" class="input-app" placeholder="Search description / amount / file..." onkeyup="filterGrabCsvHistory()">
+                            <button class="btn btn-secondary" onclick="clearGrabCsvFilters()">Clear Filters</button>
+                            <button class="btn btn-info" onclick="exportGrabCsvHistory()">Export CSV</button>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                            <div style="background: var(--yws-mint); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--yws-forest-mid);">Total Credits</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-mid);">RM <span id="grabCsvTotalCredits">0.00</span></div>
+                            </div>
+                            <div style="background: var(--yws-canvas); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--yws-forest-mid);">Total Debits</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-mid);">RM <span id="grabCsvTotalDebits">0.00</span></div>
+                            </div>
+                            <div style="background: var(--yws-canvas); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--yws-forest-mid);">Net</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-mid);">RM <span id="grabCsvNet">0.00</span></div>
+                            </div>
+                            <div style="background: var(--yws-canvas); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--ent-muted);">Transactions</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-deep);"><span id="grabCsvCount">0</span></div>
+                            </div>
+                        </div>
+
+                        <div class="history-table-container">
+                            <table class="history-table">
+                                <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Source File</th><th>Action</th></tr></thead>
+                                <tbody id="grabCsvHistoryBody"></tbody>
+                            </table>
+                            <div id="noGrabCsvHistoryMessage" class="no-history-message" style="display: none;">No Grab CSV transactions found.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="grabLatestImportSection" style="display: none; margin-top: 20px;">
+                    <div class="section-header">Imported Transactions (Latest Import)</div>
+                    <div class="section-content" style="overflow-x: auto;">
+                        <table class="table">
+                            <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
+                            <tbody id="grabLatestImportTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            createBackendSection('Grab CSV Import', content);
+            renderGenericCsvPreviewRows('grab', parsedGrabCsvRows);
+            loadCsvImportData('grab').then(() => filterCsvImportHistory('grab'));
+            renderLatestImportedCsvRows('grab', latestImportedGrabRows);
+        }
+
+        function showShopeeCsvImportSection() {
+            const content = `
+                ${getImportSubNavHtml('shopee')}
+                <div class="section">
+                    <div class="section-header">Shopee CSV Import</div>
+                    <div class="section-content" style="display: flex; justify-content: center;">
+                        <div style="width: min(900px, 100%); text-align: center; border: 2px dashed var(--ent-border); padding: 26px; border-radius: 10px; background: #ffffff;">
+                            <h3 style="margin-bottom: 8px; color: var(--yws-forest-mid);">Upload Shopee CSV</h3>
+                            <p style="margin-bottom: 16px; color: var(--ent-muted);">Upload a Shopee CSV file, preview rows, then import.</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 10px;">
+                                <button type="button" class="btn btn-info" onclick="document.getElementById('shopeeCsvFileInput').click()">Choose Shopee CSV</button>
+                                <button type="button" class="btn btn-success" id="shopeeCsvImportBtn" onclick="importShopeeCsvToDatabase()" disabled>Import Shopee Rows</button>
+                            </div>
+                            <input type="file" id="shopeeCsvFileInput" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onchange="handleShopeeCsvSelection(event)" style="display: none;">
+                            <p id="shopeeCsvSelectedFile" style="margin: 8px 0 0; color: var(--ent-muted); font-size: 14px;"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="section" id="shopeeCsvPreviewSection" style="display: none; margin-top: 20px;">
+                    <div class="section-header">Shopee CSV Preview</div>
+                    <div class="section-content" style="overflow-x: auto;">
+                        <table class="table">
+                            <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Source</th></tr></thead>
+                            <tbody id="shopeeCsvPreviewTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="section" style="margin-top: 20px;">
+                    <div class="section-header">Shopee CSV History</div>
+                    <div class="section-content">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                            <input type="month" id="shopeeCsvMonthFilter" class="input-app" onchange="filterShopeeCsvHistory()">
+                            <input type="text" id="shopeeCsvSearchFilter" class="input-app" placeholder="Search description / amount / file..." onkeyup="filterShopeeCsvHistory()">
+                            <button class="btn btn-secondary" onclick="clearShopeeCsvFilters()">Clear Filters</button>
+                            <button class="btn btn-info" onclick="exportShopeeCsvHistory()">Export CSV</button>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                            <div style="background: var(--yws-mint); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--yws-forest-mid);">Total Credits</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-mid);">RM <span id="shopeeCsvTotalCredits">0.00</span></div>
+                            </div>
+                            <div style="background: var(--yws-canvas); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--yws-forest-mid);">Total Debits</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-mid);">RM <span id="shopeeCsvTotalDebits">0.00</span></div>
+                            </div>
+                            <div style="background: var(--yws-canvas); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--yws-forest-mid);">Net</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-mid);">RM <span id="shopeeCsvNet">0.00</span></div>
+                            </div>
+                            <div style="background: var(--yws-canvas); border: 1px solid var(--ent-border); border-radius: 8px; padding: 10px;">
+                                <div style="font-size: 12px; color: var(--ent-muted);">Transactions</div>
+                                <div style="font-weight: 700; color: var(--yws-forest-deep);"><span id="shopeeCsvCount">0</span></div>
+                            </div>
+                        </div>
+
+                        <div class="history-table-container">
+                            <table class="history-table">
+                                <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Source File</th><th>Action</th></tr></thead>
+                                <tbody id="shopeeCsvHistoryBody"></tbody>
+                            </table>
+                            <div id="noShopeeCsvHistoryMessage" class="no-history-message" style="display: none;">No Shopee CSV transactions found.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="shopeeLatestImportSection" style="display: none; margin-top: 20px;">
+                    <div class="section-header">Imported Transactions (Latest Import)</div>
+                    <div class="section-content" style="overflow-x: auto;">
+                        <table class="table">
+                            <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
+                            <tbody id="shopeeLatestImportTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            createBackendSection('Shopee CSV Import', content);
+            renderGenericCsvPreviewRows('shopee', parsedShopeeCsvRows);
+            loadCsvImportData('shopee').then(() => filterCsvImportHistory('shopee'));
+            renderLatestImportedCsvRows('shopee', latestImportedShopeeRows);
+        }
+
         function showHelpSection() {
             const content = `
                 <div class="section">
-                    <div class="section-header">❓ Help & Documentation</div>
+                    <div class="section-header">Help & Documentation</div>
                     <div class="section-content">
                         <div style="margin-bottom: 20px;">
                             <h3>Getting Started</h3>
@@ -8474,7 +9721,7 @@
             if (expensesArray.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 20px; color: #999;">
+                        <td colspan="5" style="text-align: center; padding: 20px; color: var(--ent-muted);">
                             No expenses data found for the selected period.
                         </td>
                     </tr>
@@ -8484,17 +9731,17 @@
             
             tbody.innerHTML = expensesArray.map((exp, index) => {
                 const rank = index + 1;
-                const rankClass = rank === 1 ? 'style="color: #e74c3c; font-weight: bold;"' : 
-                                 rank === expensesArray.length ? 'style="color: #27ae60; font-weight: bold;"' : '';
+                const rankClass = rank === 1 ? 'style="color: var(--yws-teal-dark); font-weight: bold;"' : 
+                                 rank === expensesArray.length ? 'style="color: var(--yws-forest-mid); font-weight: bold;"' : '';
                 const rankIcon = rank === 1 ? '🏆 ' : rank === expensesArray.length ? '📉 ' : '';
                 
                 return `
                     <tr>
                         <td ${rankClass}>${rankIcon}${rank}</td>
                         <td><strong>${exp.name}</strong></td>
-                        <td><span class="badge" style="background: ${exp.type === 'Expense' ? '#3498db' : '#9b59b6'}; color: white; padding: 4px 8px; border-radius: 3px;">${exp.type}</span></td>
+                        <td><span class="badge" style="background: ${exp.type === 'Expense' ? 'var(--yws-teal)' : 'var(--yws-forest-mid)'}; color: white; padding: 4px 8px; border-radius: 3px;">${exp.type}</span></td>
                         <td>${exp.count}</td>
-                        <td style="font-weight: bold; color: ${rank === 1 ? '#e74c3c' : '#2c3e50'};">
+                        <td style="font-weight: bold; color: ${rank === 1 ? 'var(--yws-teal-dark)' : 'var(--yws-forest-mid)'};">
                             RM ${exp.total.toFixed(2)}
                         </td>
                     </tr>
@@ -8961,29 +10208,29 @@
                     datasets: [{
                         label: 'Cigarette Sales',
                         data: [],
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderColor: '#0ea5a4',
+                        backgroundColor: 'rgba(14, 165, 164, 0.12)',
                         tension: 0.4,
                         fill: true
                     }, {
                         label: 'Rental Collection',
                         data: [],
-                        borderColor: '#27ae60',
-                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        borderColor: '#0f766e',
+                        backgroundColor: 'rgba(15, 118, 110, 0.12)',
                         tension: 0.4,
                         fill: true
                     }, {
                         label: 'Coffee Sales',
                         data: [],
-                        borderColor: '#f39c12',
-                        backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                        borderColor: '#1e293b',
+                        backgroundColor: 'rgba(30, 41, 59, 0.10)',
                         tension: 0.4,
                         fill: true
                     }, {
                         label: 'Beer Sales',
                         data: [],
-                        borderColor: '#e74c3c',
-                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderColor: '#0f172a',
+                        backgroundColor: 'rgba(15, 23, 42, 0.12)',
                         tension: 0.4,
                         fill: true
                     }]
@@ -9030,20 +10277,20 @@
                     datasets: [{
                         label: 'Expenses',
                         data: [],
-                        backgroundColor: '#e74c3c',
-                        borderColor: '#c0392b',
+                        backgroundColor: '#0ea5a4',
+                        borderColor: '#0f766e',
                         borderWidth: 1
                     }, {
                         label: 'Bank Expenses',
                         data: [],
-                        backgroundColor: '#9b59b6',
-                        borderColor: '#8e44ad',
+                        backgroundColor: '#1e293b',
+                        borderColor: '#0f172a',
                         borderWidth: 1
                     }, {
                         label: 'Salary/Gaji',
                         data: [],
-                        backgroundColor: '#f39c12',
-                        borderColor: '#e67e22',
+                        backgroundColor: '#14b8a6',
+                        borderColor: '#0f766e',
                         borderWidth: 1
                     }]
                 },
@@ -9089,16 +10336,16 @@
                     datasets: [{
                         data: [],
                         backgroundColor: [
-                            '#3498db',
-                            '#27ae60',
-                            '#f39c12',
-                            '#e74c3c',
-                            '#9b59b6',
-                            '#1abc9c',
-                            '#34495e',
-                            '#e67e22',
-                            '#16a085',
-                            '#2c3e50'
+                            '#0ea5a4',
+                            '#0f766e',
+                            '#14b8a6',
+                            '#1e293b',
+                            '#0f172a',
+                            '#2dd4bf',
+                            '#334155',
+                            '#0d9488',
+                            '#115e59',
+                            '#1f2937'
                         ],
                         borderWidth: 2,
                         borderColor: '#fff'
@@ -9140,26 +10387,26 @@
                     datasets: [{
                         label: 'Cash Received',
                         data: [],
-                        backgroundColor: '#27ae60',
-                        borderColor: '#229954',
+                        backgroundColor: '#0ea5a4',
+                        borderColor: '#0f766e',
                         borderWidth: 1
                     }, {
                         label: 'TNG Received',
                         data: [],
-                        backgroundColor: '#3498db',
-                        borderColor: '#2980b9',
+                        backgroundColor: '#14b8a6',
+                        borderColor: '#0f766e',
                         borderWidth: 1
                     }, {
                         label: 'Grab Received',
                         data: [],
-                        backgroundColor: '#f39c12',
-                        borderColor: '#e67e22',
+                        backgroundColor: '#1e293b',
+                        borderColor: '#0f172a',
                         borderWidth: 1
                     }, {
                         label: 'Shopee Received',
                         data: [],
-                        backgroundColor: '#e74c3c',
-                        borderColor: '#c0392b',
+                        backgroundColor: '#334155',
+                        borderColor: '#0f172a',
                         borderWidth: 1
                     }]
                 },
@@ -9209,10 +10456,10 @@
                     datasets: [{
                         data: [0, 0, 0, 0],
                         backgroundColor: [
-                            '#27ae60',  // Cash - Green
-                            '#3498db',  // TNG - Blue
-                            '#f39c12',  // Grab - Orange
-                            '#e74c3c'   // Shopee - Red
+                            '#0ea5a4',
+                            '#14b8a6',
+                            '#1e293b',
+                            '#334155'
                         ],
                         borderColor: '#ffffff',
                         borderWidth: 2
@@ -9254,24 +10501,24 @@
                     datasets: [{
                         label: 'Total Sales',
                         data: [],
-                        borderColor: '#27ae60',
-                        backgroundColor: 'rgba(39, 174, 96, 0.2)',
+                        borderColor: '#0ea5a4',
+                        backgroundColor: 'rgba(14, 165, 164, 0.2)',
                         tension: 0.4,
                         fill: true,
                         borderWidth: 3
                     }, {
                         label: 'Total Expenses',
                         data: [],
-                        borderColor: '#e74c3c',
-                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                        borderColor: '#334155',
+                        backgroundColor: 'rgba(51, 65, 85, 0.2)',
                         tension: 0.4,
                         fill: true,
                         borderWidth: 3
                     }, {
                         label: 'Net Profit',
                         data: [],
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderColor: '#0f172a',
+                        backgroundColor: 'rgba(15, 23, 42, 0.2)',
                         tension: 0.4,
                         fill: true,
                         borderWidth: 3
@@ -9991,8 +11238,8 @@
             `;
             
             modal.innerHTML = `
-                <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%;">
-                    <h2 style="margin-bottom: 20px; color: #2c3e50;">Custom Report</h2>
+                <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%; border: 1px solid var(--ent-border);">
+                    <h2 style="margin-bottom: 20px; color: var(--yws-forest-mid);">Custom Report</h2>
                     <div class="date-picker">
                         <label>From Date:</label>
                         <input type="date" id="customStartDate" value="${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}">
@@ -10002,8 +11249,8 @@
                         <input type="date" id="customEndDate" value="${new Date().toISOString().split('T')[0]}">
                     </div>
                     <div style="text-align: right; margin-top: 20px;">
-                        <button onclick="generateCustomReportFromDates()" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-right: 10px;">Generate Report</button>
-                        <button onclick="this.closest('div').parentElement.remove()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Cancel</button>
+                        <button onclick="generateCustomReportFromDates()" style="background: var(--yws-teal); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-right: 10px;">Generate Report</button>
+                        <button onclick="this.closest('div').parentElement.remove()" style="background: var(--yws-forest-mid); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Cancel</button>
                     </div>
                 </div>
             `;
@@ -10104,7 +11351,7 @@
         function displayReport(title, content) {
             // Show loading state
             document.getElementById('reportTitle').textContent = 'Generating Report...';
-            document.getElementById('reportContent').innerHTML = '<div style="text-align: center; padding: 40px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div><p style="margin-top: 20px; color: #666;">Generating report...</p></div>';
+            document.getElementById('reportContent').innerHTML = '<div style="text-align: center; padding: 40px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid var(--ent-border); border-top: 4px solid var(--yws-teal); border-radius: 50%; animation: spin 1s linear infinite;"></div><p style="margin-top: 20px; color: var(--ent-muted);">Generating report...</p></div>';
             document.getElementById('reportDisplay').style.display = 'block';
             
             // Scroll to report
@@ -10134,7 +11381,7 @@
                     </div>
                     <div class="report-card">
                         <h4>Net Profit</h4>
-                        <div class="value" style="color: ${netProfit >= 0 ? '#27ae60' : '#e74c3c'}">RM ${netProfit.toFixed(2)}</div>
+                        <div class="value" style="color: var(--yws-teal-dark);">RM ${netProfit.toFixed(2)}</div>
                     </div>
                 </div>
 
@@ -10187,7 +11434,7 @@
                     </div>
                     <div class="report-card">
                         <h4>Net Profit</h4>
-                        <div class="value" style="color: ${totals.netProfit >= 0 ? '#27ae60' : '#e74c3c'}">RM ${totals.netProfit.toFixed(2)}</div>
+                        <div class="value" style="color: var(--yws-teal-dark);">RM ${totals.netProfit.toFixed(2)}</div>
                     </div>
                     <div class="report-card">
                         <h4>Average Daily</h4>
@@ -10207,7 +11454,7 @@
                                 <td>${formatDate(day.date)}</td>
                                 <td>RM ${sales.toFixed(2)}</td>
                                 <td>RM ${expenses.toFixed(2)}</td>
-                                <td style="color: ${profit >= 0 ? '#27ae60' : '#e74c3c'}">RM ${profit.toFixed(2)}</td>
+                                <td style="color: var(--yws-teal-dark);">RM ${profit.toFixed(2)}</td>
                             </tr>`;
                         }).join('')}
                     </table>
@@ -10731,7 +11978,7 @@
 
             // Simple loading state
             titleElement.textContent = 'Generating Combination Report...';
-            contentElement.innerHTML = '<div style="text-align: center; padding: 40px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div><p style="margin-top: 20px; color: #666;">Generating combination report...</p></div>';
+            contentElement.innerHTML = '<div style="text-align: center; padding: 40px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid var(--ent-border); border-top: 4px solid var(--yws-teal); border-radius: 50%; animation: spin 1s linear infinite;"></div><p style="margin-top: 20px; color: var(--ent-muted);">Generating combination report...</p></div>';
             displayElement.style.display = 'block';
 
             displayElement.scrollIntoView({ behavior: 'smooth' });
@@ -10931,7 +12178,7 @@
             const data = todayData[0];
             const content = generateNightDailyReportContent(data);
             
-            document.getElementById('nightReportTitle').textContent = `🌙 Night Shift Daily Report - ${formatDate(today)}`;
+            document.getElementById('nightReportTitle').textContent = `Night Shift Daily Report - ${formatDate(today)}`;
             document.getElementById('nightReportContent').innerHTML = content;
             document.getElementById('nightReportDisplay').style.display = 'block';
         }
@@ -10953,7 +12200,7 @@
             const content = generateNightWeeklyReportContent(weekData);
             const dateRange = `${formatDate(weekData[0].date)} to ${formatDate(weekData[weekData.length - 1].date)}`;
             
-            document.getElementById('nightReportTitle').textContent = `🌙 Night Shift Weekly Report - ${dateRange}`;
+            document.getElementById('nightReportTitle').textContent = `Night Shift Weekly Report - ${dateRange}`;
             document.getElementById('nightReportContent').innerHTML = content;
             document.getElementById('nightReportDisplay').style.display = 'block';
         }
@@ -10975,7 +12222,7 @@
             const content = generateNightMonthlyReportContent(monthData);
             const monthName = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
             
-            document.getElementById('nightReportTitle').textContent = `🌙 Night Shift Monthly Report - ${monthName}`;
+            document.getElementById('nightReportTitle').textContent = `Night Shift Monthly Report - ${monthName}`;
             document.getElementById('nightReportContent').innerHTML = content;
             document.getElementById('nightReportDisplay').style.display = 'block';
         }
@@ -11000,7 +12247,7 @@
             const content = generateNightCustomReportContent(customData);
             const dateRange = `${formatDate(startDate)} to ${formatDate(endDate)}`;
             
-            document.getElementById('nightReportTitle').textContent = `🌙 Night Shift Custom Report - ${dateRange}`;
+            document.getElementById('nightReportTitle').textContent = `Night Shift Custom Report - ${dateRange}`;
             document.getElementById('nightReportContent').innerHTML = content;
             document.getElementById('nightReportDisplay').style.display = 'block';
         }
