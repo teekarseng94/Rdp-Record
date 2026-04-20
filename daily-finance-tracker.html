@@ -7147,12 +7147,54 @@
 
             if (sign === 0) {
                 const desc = String(description || '').toLowerCase();
-                const creditHints = ['cr adv', 'deposit', 'cdm deposit', 'credit'];
+                const creditHints = [
+                    'cr adv',
+                    'deposit',
+                    'cdm deposit',
+                    'credit',
+                    'instant transfer at',
+                    'gpay network',
+                    'interbank giro',
+                    'giro'
+                ];
+                const debitHints = [
+                    'dr ',
+                    'duitnow-previously inst',
+                    'loan for financing payment',
+                    'payment',
+                    'withdrawal',
+                    'debit'
+                ];
                 const isCredit = creditHints.some(token => desc.includes(token));
-                sign = isCredit ? 1 : -1;
+                const isDebit = debitHints.some(token => desc.includes(token));
+                if (isCredit && !isDebit) sign = 1;
+                else if (isDebit && !isCredit) sign = -1;
+                else sign = -1;
             }
             const num = parseCurrency(raw.replace(/CR|DR/g, ''));
             return sign * num;
+        }
+
+        function reconcileBankTransactionSignsByBalance(transactions) {
+            if (!Array.isArray(transactions) || transactions.length < 2) return transactions;
+
+            for (let i = 1; i < transactions.length; i++) {
+                const prevBalance = parseFloat(transactions[i - 1]?.balance);
+                const currentBalance = parseFloat(transactions[i]?.balance);
+                const currentAmount = parseFloat(transactions[i]?.amount);
+
+                if (!Number.isFinite(prevBalance) || !Number.isFinite(currentBalance) || !Number.isFinite(currentAmount)) continue;
+                if (Math.abs(currentAmount) < 0.005) continue;
+
+                const delta = currentBalance - prevBalance;
+                if (!Number.isFinite(delta) || Math.abs(delta) < 0.005) continue;
+
+                // If balance movement strongly indicates opposite sign, correct the parsed amount.
+                if (Math.abs(Math.abs(delta) - Math.abs(currentAmount)) <= 0.05 && Math.sign(delta) !== Math.sign(currentAmount)) {
+                    transactions[i].amount = Math.sign(delta) * Math.abs(currentAmount);
+                }
+            }
+            return transactions;
         }
 
         async function ensurePdfParserLoaded() {
@@ -7370,7 +7412,7 @@
                 last.description = `${last.description} ${continuation}`.replace(/\s+/g, ' ').trim();
             });
 
-            return transactions;
+            return reconcileBankTransactionSignsByBalance(transactions);
         }
 
         function resetBankPdfPreview() {
