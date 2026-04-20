@@ -2664,7 +2664,7 @@
                     <a href="#" class="nav-link" onclick="showNightSection(event)">Night Section</a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="showReports(event)">Morning Reports</a>
+                    <a href="#/morningreport" class="nav-link" id="navMorningReports" onclick="showReports(event)">Morning Reports</a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" onclick="showNightReports(event)">Night Reports</a>
@@ -5223,11 +5223,13 @@
         }
 
         /** Deep link routes:
+         * daily-finance-tracker.html#/morningreport
          * daily-finance-tracker.html#/pdfimport
          * daily-finance-tracker.html#/pdfimport/bank
          * daily-finance-tracker.html#/pdfimport/grab
          * daily-finance-tracker.html#/pdfimport/shopee
          */
+        const APP_HASH_MORNING_REPORT = '#/morningreport';
         const APP_HASH_PDF_IMPORT = '#/pdfimport';
         const APP_HASH_PDF_IMPORT_BANK = '#/pdfimport/bank';
         const APP_HASH_PDF_IMPORT_GRAB = '#/pdfimport/grab';
@@ -5235,6 +5237,9 @@
 
         function normalizeAppHashRoute() {
             const raw = (window.location.hash || '').trim().toLowerCase();
+            if (raw === '#/morningreport' || raw === '#/morning-report') {
+                return 'morningreport';
+            }
             if (raw === '#/pdfimport' || raw === '#pdfimport' || raw === '#/pdf-import' || raw === '#/pdfimport/bank') {
                 return 'pdfimport-bank';
             }
@@ -5250,6 +5255,7 @@
         function setAppRouteHash(route) {
             const base = window.location.pathname + window.location.search;
             let next = base;
+            if (route === 'morningreport') next = base + APP_HASH_MORNING_REPORT;
             if (route === 'pdfimport' || route === 'pdfimport-bank') next = base + APP_HASH_PDF_IMPORT_BANK;
             if (route === 'pdfimport-grab') next = base + APP_HASH_PDF_IMPORT_GRAB;
             if (route === 'pdfimport-shopee') next = base + APP_HASH_PDF_IMPORT_SHOPEE;
@@ -5258,11 +5264,25 @@
                 try {
                     window.history.replaceState(null, '', next);
                 } catch (e) {
+                    if (route === 'morningreport') window.location.hash = '/morningreport';
+                    else
                     if (route === 'pdfimport' || route === 'pdfimport-bank') window.location.hash = '/pdfimport/bank';
                     else if (route === 'pdfimport-grab') window.location.hash = '/pdfimport/grab';
                     else if (route === 'pdfimport-shopee') window.location.hash = '/pdfimport/shopee';
                     else window.location.hash = '';
                 }
+            }
+        }
+
+        function navigateToMorningReportsScreen(opts) {
+            opts = opts || {};
+            hideAllSections();
+            showReportsSection();
+            document.querySelectorAll('#navbarNav .nav-link').forEach(link => link.classList.remove('active'));
+            const reportsNav = document.getElementById('navMorningReports');
+            if (reportsNav) reportsNav.classList.add('active');
+            if (!opts.fromHash) {
+                setAppRouteHash('morningreport');
             }
         }
 
@@ -5313,6 +5333,10 @@
             if (!mainApp || mainApp.style.display === 'none') return;
 
             const route = normalizeAppHashRoute();
+            if (route === 'morningreport') {
+                navigateToMorningReportsScreen({ fromHash: true });
+                return;
+            }
             if (route === 'pdfimport-bank') {
                 navigateToPdfImportScreen({ fromHash: true, subRoute: 'bank' });
                 return;
@@ -5363,9 +5387,7 @@
 
         function showReports(event) {
             setActiveNavLink(event.target);
-            hideAllSections();
-            setAppRouteHash('');
-            showReportsSection();
+            navigateToMorningReportsScreen();
         }
 
         function showNightReports(event) {
@@ -7084,6 +7106,8 @@
         let activeBankPdfFileName = '';
         let activePdfWorkerSrc = '';
         let latestImportedBankRows = [];
+        let bankStatementKeywordAnalyses = [];
+        let bankStatementKeywordExpanded = {};
 
         function normalizeDateInput(rawDate) {
             const value = String(rawDate || '').trim();
@@ -7465,6 +7489,166 @@
             }
         }
 
+        function loadBankStatementKeywordAnalyses() {
+            try {
+                bankStatementKeywordAnalyses = JSON.parse(localStorage.getItem('bankStatementKeywordAnalyses')) || [];
+            } catch (error) {
+                console.warn('Unable to load bank keyword analyses from localStorage:', error);
+                bankStatementKeywordAnalyses = [];
+            }
+            if (!Array.isArray(bankStatementKeywordAnalyses)) {
+                bankStatementKeywordAnalyses = [];
+            }
+            bankStatementKeywordAnalyses = bankStatementKeywordAnalyses
+                .map((item) => String(item || '').trim())
+                .filter(Boolean);
+        }
+
+        function saveBankStatementKeywordAnalyses() {
+            localStorage.setItem('bankStatementKeywordAnalyses', JSON.stringify(bankStatementKeywordAnalyses));
+        }
+
+        function addBankStatementKeywordAnalysis() {
+            const input = document.getElementById('bankKeywordAnalysisInput');
+            if (!input) return;
+
+            const keyword = String(input.value || '').trim();
+            if (!keyword) {
+                alert('Please enter a keyword first.');
+                return;
+            }
+
+            const exists = bankStatementKeywordAnalyses.some((item) => item.toLowerCase() === keyword.toLowerCase());
+            if (exists) {
+                alert('This keyword is already in the analysis list.');
+                return;
+            }
+
+            bankStatementKeywordAnalyses.push(keyword);
+            bankStatementKeywordExpanded[keyword.toLowerCase()] = false;
+            saveBankStatementKeywordAnalyses();
+            input.value = '';
+            renderBankStatementKeywordAnalysis(getFilteredBankStatementRows());
+        }
+
+        function removeBankStatementKeywordAnalysis(index) {
+            if (!Number.isInteger(index) || index < 0 || index >= bankStatementKeywordAnalyses.length) return;
+            const removed = String(bankStatementKeywordAnalyses[index] || '').toLowerCase();
+            bankStatementKeywordAnalyses.splice(index, 1);
+            delete bankStatementKeywordExpanded[removed];
+            saveBankStatementKeywordAnalyses();
+            renderBankStatementKeywordAnalysis(getFilteredBankStatementRows());
+        }
+
+        function toggleBankStatementKeywordMatches(keyword) {
+            const key = String(keyword || '').toLowerCase();
+            bankStatementKeywordExpanded[key] = !bankStatementKeywordExpanded[key];
+            renderBankStatementKeywordAnalysis(getFilteredBankStatementRows());
+        }
+
+        function renderBankStatementKeywordAnalysis(rows) {
+            const tbody = document.getElementById('bankKeywordAnalysisTableBody');
+            if (!tbody) return;
+
+            const safeRows = Array.isArray(rows) ? rows : [];
+            if (!bankStatementKeywordAnalyses.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 16px; color: var(--ent-muted);">
+                            No keyword analysis yet. Add a keyword to start analyzing transactions.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = bankStatementKeywordAnalyses.map((keyword, index) => {
+                const needle = keyword.toLowerCase();
+                let totalAmountCents = 0;
+                const matchingRows = [];
+
+                safeRows.forEach((row) => {
+                    const description = String(row?.description || '').toLowerCase();
+                    if (!description.includes(needle)) return;
+                    matchingRows.push(row);
+                    const amount = parseFloat(row?.amount || 0);
+                    totalAmountCents += Math.round((Number.isFinite(amount) ? amount : 0) * 100);
+                });
+
+                const matches = matchingRows.length;
+                const totalAmount = totalAmountCents / 100;
+                const amountColor = totalAmount >= 0 ? '#166534' : '#991b1b';
+                const isExpanded = !!bankStatementKeywordExpanded[needle];
+                const detailRowsHtml = matchingRows.length
+                    ? matchingRows.map((row) => {
+                        const amount = parseFloat(row?.amount || 0);
+                        const amountSafe = Number.isFinite(amount) ? amount : 0;
+                        const rowColor = amountSafe >= 0 ? '#166534' : '#991b1b';
+                        return `
+                            <tr>
+                                <td>${formatDate(row.transactionDate)}</td>
+                                <td style="text-align: left;">${row.description || '-'}</td>
+                                <td style="font-weight: 600; color: ${rowColor};">RM ${amountSafe.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('')
+                    : `
+                        <tr>
+                            <td colspan="3" style="text-align:center; padding:10px; color: var(--ent-muted);">
+                                No matching transactions in the current history view.
+                            </td>
+                        </tr>
+                    `;
+                return `
+                    <tr>
+                        <td style="font-weight: 600;">${keyword}</td>
+                        <td>${matches}</td>
+                        <td style="font-weight: 700; color: ${amountColor};">
+                            RM ${totalAmount.toFixed(2)}
+                        </td>
+                        <td style="display:flex; gap:8px; flex-wrap: wrap;">
+                            <button class="btn btn-info btn-sm" onclick="toggleBankStatementKeywordMatches('${String(keyword).replace(/'/g, "\\'")}')">
+                                ${isExpanded ? 'Hide Matches' : 'View Matches'}
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="removeBankStatementKeywordAnalysis(${index})">Remove</button>
+                        </td>
+                    </tr>
+                    ${isExpanded ? `
+                        <tr>
+                            <td colspan="4" style="background: #f8fafc;">
+                                <div style="padding: 10px 6px;">
+                                    <div style="font-size: 12px; color: var(--ent-muted); margin-bottom: 8px;">
+                                        ${matches} match(es) for "${keyword}" in current filtered history
+                                    </div>
+                                    <div style="overflow-x:auto;">
+                                        <table class="table" style="margin-bottom: 0;">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 18%;">Date</th>
+                                                    <th style="width: 62%;">Description</th>
+                                                    <th style="width: 20%;">Amount (RM)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${detailRowsHtml}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    ` : ''}
+                `;
+            }).join('');
+        }
+
+        function handleBankKeywordAnalysisKeydown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addBankStatementKeywordAnalysis();
+            }
+        }
+
         function renderBankStatementHistoryTable(rows) {
             const tbody = document.getElementById('bankStatementHistoryBody');
             const empty = document.getElementById('noBankStatementHistoryMessage');
@@ -7474,6 +7658,7 @@
                 tbody.innerHTML = '';
                 empty.style.display = 'block';
                 updateBankStatementHistorySummary([]);
+                renderBankStatementKeywordAnalysis([]);
                 return;
             }
 
@@ -7498,6 +7683,7 @@
             `).join('');
 
             updateBankStatementHistorySummary(sorted);
+            renderBankStatementKeywordAnalysis(sorted);
         }
 
         function updateBankStatementHistorySummary(rows) {
@@ -8002,6 +8188,8 @@
         }
 
         function showReportsSection() {
+            const defaultCashFlowEndDate = new Date().toISOString().split('T')[0];
+            const defaultCashFlowStartDate = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
             const content = `
                 <div class="section">
                     <div class="section-header">Financial Reports</div>
@@ -8170,10 +8358,21 @@
                             <div style="margin-bottom: 15px;">
                                 <p style="color: var(--ent-muted);">View cash flow details including Cash Received, TNG Received, Expenses, Salary, Grab, and Shopee for selected date range.</p>
                                 <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
-                                    <button class="btn btn-primary" onclick="updateCashFlowAnalysis('7days')">7 Days</button>
-                                    <button class="btn btn-primary" onclick="updateCashFlowAnalysis('30days')">30 Days</button>
-                                    <button class="btn btn-primary" onclick="updateCashFlowAnalysis('90days')">90 Days</button>
-                                    <button class="btn btn-info" onclick="updateCashFlowAnalysis('all')">All Time</button>
+                                    <button class="btn btn-primary" data-cash-flow-filter="7days" onclick="updateCashFlowAnalysis('7days')">7 Days</button>
+                                    <button class="btn btn-primary" data-cash-flow-filter="30days" onclick="updateCashFlowAnalysis('30days')">30 Days</button>
+                                    <button class="btn btn-primary" data-cash-flow-filter="90days" onclick="updateCashFlowAnalysis('90days')">90 Days</button>
+                                    <button class="btn btn-info" data-cash-flow-filter="all" onclick="updateCashFlowAnalysis('all')">All Time</button>
+                                </div>
+                                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: end;">
+                                    <div>
+                                        <label for="cashFlowStartDate" style="display:block; font-size:12px; color: var(--ent-muted); margin-bottom: 4px;">From Date</label>
+                                        <input type="date" id="cashFlowStartDate" value="${defaultCashFlowStartDate}" style="padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    </div>
+                                    <div>
+                                        <label for="cashFlowEndDate" style="display:block; font-size:12px; color: var(--ent-muted); margin-bottom: 4px;">To Date</label>
+                                        <input type="date" id="cashFlowEndDate" value="${defaultCashFlowEndDate}" style="padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    </div>
+                                    <button class="btn btn-success" data-cash-flow-filter="custom" onclick="updateCashFlowAnalysisCustomRange()">Apply Date Range</button>
                                 </div>
                             </div>
                             <div class="table-responsive">
@@ -8446,6 +8645,42 @@
                                 No bank statement transactions found.
                             </div>
                         </div>
+
+                        <div class="section" style="margin-top: 20px; border: 1px solid var(--ent-border); border-radius: 10px; background: #fff;">
+                            <div class="section-header">Keyword Analysis Summary</div>
+                            <div class="section-content">
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;">
+                                    <input
+                                        type="text"
+                                        id="bankKeywordAnalysisInput"
+                                        class="input-app"
+                                        placeholder="Keyword"
+                                        onkeydown="handleBankKeywordAnalysisKeydown(event)"
+                                        style="min-width: 220px; flex: 1;"
+                                    >
+                                    <button class="btn btn-success" onclick="addBankStatementKeywordAnalysis()">Add Analysis</button>
+                                </div>
+                                <div style="overflow-x: auto;">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Keyword</th>
+                                                <th>Matches Found</th>
+                                                <th>Total Amount (RM)</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="bankKeywordAnalysisTableBody">
+                                            <tr>
+                                                <td colspan="4" style="text-align: center; padding: 16px; color: var(--ent-muted);">
+                                                    No keyword analysis yet. Add a keyword to start analyzing transactions.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -8470,6 +8705,7 @@
 
             createBackendSection('Bank Statement Import', content);
             resetBankPdfPreview();
+            loadBankStatementKeywordAnalyses();
             loadBankStatementData().then(() => filterBankStatementHistory());
             initializePdfParserStatus();
             renderLatestImportedBankRows(latestImportedBankRows);
@@ -9766,7 +10002,27 @@
             
             // Filter data by period
             let filteredData = savedData;
-            if (period !== 'all') {
+            if (period === 'custom') {
+                const startDateInput = document.getElementById('cashFlowStartDate');
+                const endDateInput = document.getElementById('cashFlowEndDate');
+                const startDateValue = startDateInput ? startDateInput.value : '';
+                const endDateValue = endDateInput ? endDateInput.value : '';
+
+                if (!startDateValue || !endDateValue) {
+                    alert('Please select both From Date and To Date for Cash Flow Analysis.');
+                    return;
+                }
+                if (new Date(startDateValue) > new Date(endDateValue)) {
+                    alert('From Date cannot be later than To Date.');
+                    return;
+                }
+
+                filteredData = savedData.filter(record => {
+                    if (!record || !record.date) return false;
+                    const recordDate = String(record.date).split('T')[0];
+                    return recordDate >= startDateValue && recordDate <= endDateValue;
+                });
+            } else if (period !== 'all') {
                 const days = parseInt(period.replace('days', ''));
                 const endDate = new Date();
                 const startDate = new Date();
@@ -9932,12 +10188,16 @@
             tbody.innerHTML = rows + totalRow;
             
             // Update button states
-            document.querySelectorAll('[onclick^="updateCashFlowAnalysis"]').forEach(btn => {
+            document.querySelectorAll('[data-cash-flow-filter]').forEach(btn => {
                 btn.classList.remove('active');
-                if (btn.getAttribute('onclick').includes(`'${period}'`)) {
+                if (btn.getAttribute('data-cash-flow-filter') === period) {
                     btn.classList.add('active');
                 }
             });
+        }
+
+        function updateCashFlowAnalysisCustomRange() {
+            updateCashFlowAnalysis('custom');
         }
 
         // Update Cash Flow Analysis totals for a specific row
