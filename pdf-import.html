@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Import</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root { --bg:#f4f6f8; --card:#fff; --bd:#dbe2e8; --txt:#1f2937; --muted:#6b7280; --ok:#166534; --warn:#9a3412; --err:#991b1b; --brand:#16a34a; }
+        * { box-sizing: border-box; }
+        body { margin:0; font-family:Arial,sans-serif; background:var(--bg); color:var(--txt); }
+        .topbar { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid var(--bd); padding:12px 16px; display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; }
+        .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .btn { border:1px solid #cfd8df; background:#fff; color:var(--txt); border-radius:8px; padding:8px 12px; cursor:pointer; text-decoration:none; font-size:14px; }
+        .btn.active { background:var(--brand); border-color:var(--brand); color:#fff; }
+        .btn:disabled { opacity:.6; cursor:not-allowed; }
+        .container { max-width:1100px; margin:16px auto; padding:0 12px 20px; }
+        .section { background:var(--card); border:1px solid var(--bd); border-radius:10px; margin-bottom:16px; overflow:hidden; }
+        .section-header { padding:12px 14px; font-weight:700; border-bottom:1px solid var(--bd); background:#fafafa; }
+        .section-content { padding:14px; }
+        .input { border:1px solid #cfd8df; border-radius:8px; padding:8px 10px; min-width:220px; }
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; }
+        th,td { border-bottom:1px solid #ecf0f3; padding:8px; font-size:13px; text-align:center; }
+        th { background:#f9fafb; }
+        td.desc { text-align:left; }
+        .kpi { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin:12px 0; }
+        .kpi > div { border:1px solid var(--bd); border-radius:8px; padding:10px; background:#fafafa; }
+        .status { font-weight:700; }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="row">
+            <a class="btn" href="./daily-finance-tracker.html">Back to Dashboard</a>
+        </div>
+        <div class="row">
+            <button class="btn" data-route="bank" type="button">Bank Statement Import</button>
+            <button class="btn" data-route="grab" type="button">Grab CSV Import</button>
+            <button class="btn" data-route="shopee" type="button">Shopee CSV Import</button>
+        </div>
+    </header>
+    <main class="container" id="app"></main>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+
+        const firebaseConfig = { apiKey:'AIzaSyBVVXhDCgMxjeVwf3siFEdHrQ5qebvNSaw', authDomain:'rdp-final-677a1.firebaseapp.com', projectId:'rdp-final-677a1', storageBucket:'rdp-final-677a1.firebasestorage.app', messagingSenderId:'398537230115', appId:'1:398537230115:web:634a176686ea383bf66e96', measurementId:'G-4DKCVHMF1W' };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        try { await enableIndexedDbPersistence(db); } catch {}
+
+        const COLLECTIONS = { BANK_STATEMENTS:'bankStatementTransactions', GRAB_CSV_IMPORTS:'grabCsvImportTransactions', SHOPEE_CSV_IMPORTS:'shopeeCsvImportTransactions' };
+        const appRoot = document.getElementById('app');
+        const tabs = Array.from(document.querySelectorAll('[data-route]'));
+        const allowedRoutes = new Set(['bank','grab','shopee']);
+
+        let parsedBankRows = [], bankRows = [], latestBankRows = [], activeBankFile = '', activePdfWorkerSrc = '';
+        let parsedGrabRows = [], grabRows = [], latestGrabRows = [], activeGrabFile = '';
+        let parsedShopeeRows = [], shopeeRows = [], latestShopeeRows = [], activeShopeeFile = '';
+
+        function formatDate(dateString) {
+            const d = new Date(dateString);
+            if (Number.isNaN(d.getTime())) return dateString || '-';
+            return d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+        }
+        function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text == null ? '' : String(text); return d.innerHTML; }
+        function normalizeDateInput(rawDate) {
+            const value = String(rawDate || '').trim();
+            if (!value) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) { const [d,m,y] = value.split('/'); return `${y}-${m}-${d}`; }
+            if (/^\d{2}-\d{2}-\d{4}$/.test(value)) { const [d,m,y] = value.split('-'); return `${y}-${m}-${d}`; }
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().split('T')[0];
+        }
+        function parseCurrency(value) { const p = parseFloat(String(value || '').replace(/[^0-9.-]/g, '').trim()); return Number.isFinite(p) ? p : 0; }
+        function splitCsvLine(line) {
+            const out = []; let cur = ''; let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') { if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; } else inQuotes = !inQuotes; }
+                else if (ch === ',' && !inQuotes) { out.push(cur); cur = ''; }
+                else cur += ch;
+            }
+            out.push(cur);
+            return out.map(v => String(v || '').trim());
+        }
+
+        async function saveToFirestore(collectionName, data) {
+            const docRef = await addDoc(collection(db, collectionName), { ...data, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
+            return docRef.id;
+        }
+        async function getFromFirestore(collectionName) {
+            const q = query(collection(db, collectionName), orderBy('transactionDate', 'desc'));
+            const snap = await getDocs(q);
+            const out = []; snap.forEach((d) => out.push({ id:d.id, ...d.data() })); return out;
+        }
+        async function updateFirestoreDoc(collectionName, docId, data) { await updateDoc(doc(db, collectionName, docId), { ...data, updatedAt:new Date().toISOString() }); }
+        async function deleteFromFirestore(collectionName, docId) { await deleteDoc(doc(db, collectionName, docId)); }
+
+        async function ensurePdfParserLoaded() {
+            if (window.pdfjsLib) return window.pdfjsLib;
+            const sources = [
+                { lib:'./vendor/pdfjs/pdf.mjs', worker:'./vendor/pdfjs/pdf.worker.mjs' },
+                { lib:'/vendor/pdfjs/pdf.mjs', worker:'/vendor/pdfjs/pdf.worker.mjs' },
+                { lib:'./node_modules/pdfjs-dist/build/pdf.mjs', worker:'./node_modules/pdfjs-dist/build/pdf.worker.mjs' },
+                { lib:'/node_modules/pdfjs-dist/build/pdf.mjs', worker:'/node_modules/pdfjs-dist/build/pdf.worker.mjs' },
+                { lib:'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs', worker:'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs' }
+            ];
+            for (const source of sources) {
+                try {
+                    const loaded = await import(source.lib);
+                    const lib = loaded?.pdfjsLib || loaded;
+                    if (lib && typeof lib.getDocument === 'function') { window.pdfjsLib = lib; activePdfWorkerSrc = source.worker; return lib; }
+                } catch {}
+            }
+            throw new Error('PDF parser load failed.');
+        }
+        async function extractPdfText(file) {
+            await ensurePdfParserLoaded();
+            if (window.pdfjsLib?.GlobalWorkerOptions) window.pdfjsLib.GlobalWorkerOptions.workerSrc = activePdfWorkerSrc || './vendor/pdfjs/pdf.worker.mjs';
+            const buffer = await file.arrayBuffer();
+            const pdf = await window.pdfjsLib.getDocument({ data:new Uint8Array(buffer) }).promise;
+            const pages = [];
+            for (let p = 1; p <= pdf.numPages; p++) {
+                const page = await pdf.getPage(p);
+                const textContent = await page.getTextContent();
+                pages.push(textContent.items.map((x) => x.str).join(' '));
+            }
+            return pages.join('\n');
+        }
+        function parseBankAmount(amountText, description) {
+            const raw = String(amountText || '').toUpperCase().replace(/\s+/g, '');
+            if (!raw) return 0;
+            let sign = 0;
+            if (raw.includes('DR') || raw.startsWith('-')) sign = -1;
+            if (raw.includes('CR') || raw.startsWith('+')) sign = 1;
+            if (sign === 0) {
+                const desc = String(description || '').toLowerCase();
+                if (['deposit','credit','giro','instant transfer'].some((x) => desc.includes(x))) sign = 1;
+                else sign = -1;
+            }
+            return sign * parseCurrency(raw.replace(/CR|DR/g, ''));
+        }
+        function parseBankStatementTransactions(text) {
+            const lines = String(text || '').split('\n').map((l) => l.trim()).filter(Boolean);
+            const rows = [];
+            const re = /^(\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?)\s+(.+?)\s+([+-]?\d[\d,]*\.\d{2}(?:\s*(?:CR|DR))?)(?:\s+([+-]?\d[\d,]*\.\d{2}))?$/i;
+            lines.forEach((line) => {
+                const m = line.match(re);
+                if (!m) return;
+                const transactionDate = normalizeDateInput(m[1]);
+                const description = m[2].trim();
+                const amount = parseBankAmount(m[3], description);
+                const balance = parseCurrency(m[4]);
+                if (transactionDate && description) rows.push({ transactionDate, description, amount, balance, rawLine:line });
+            });
+            return rows;
+        }
+
+        function getRoute() {
+            const raw = (window.location.hash || '').replace(/^#\/?/, '').trim().toLowerCase();
+            return allowedRoutes.has(raw) ? raw : 'bank';
+        }
+        function setActiveTab(route) { tabs.forEach((t) => t.classList.toggle('active', t.dataset.route === route)); }
+
+        function renderBank() {
+            appRoot.innerHTML = `
+                <div class="section"><div class="section-header">Bank Statement PDF Import</div><div class="section-content">
+                    <div class="row"><button class="btn" id="chooseBankPdfBtn">Choose PDF File</button><button class="btn" id="importBankBtn" disabled>Import Transactions</button><input id="bankPdfInput" type="file" accept=".pdf,application/pdf" style="display:none;"><span id="bankPdfFileName" class="status"></span></div>
+                </div></div>
+                <div class="section" id="bankPreviewSec" style="display:none;"><div class="section-header">Extracted Preview</div><div class="section-content table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Balance</th></tr></thead><tbody id="bankPreviewBody"></tbody></table></div></div>
+                <div class="section"><div class="section-header">Bank Statement History</div><div class="section-content">
+                    <div class="row"><input id="bankMonth" class="input" type="month"><input id="bankSearch" class="input" type="text" placeholder="Search..."><button class="btn" id="bankClear">Clear</button><button class="btn" id="bankExport">Export CSV</button></div>
+                    <div class="kpi"><div>Credits: RM <b id="bankCredits">0.00</b></div><div>Debits: RM <b id="bankDebits">0.00</b></div><div>Net: RM <b id="bankNet">0.00</b></div><div>Transactions: <b id="bankCount">0</b></div></div>
+                    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Balance</th><th>Source</th><th>Action</th></tr></thead><tbody id="bankHistoryBody"></tbody></table></div>
+                </div></div>
+                <div class="section" id="bankLatestSec" style="display:none;"><div class="section-header">Latest Import</div><div class="section-content table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody id="bankLatestBody"></tbody></table></div></div>
+            `;
+
+            const input = document.getElementById('bankPdfInput');
+            document.getElementById('chooseBankPdfBtn').onclick = () => input.click();
+            input.onchange = async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.name.toLowerCase().endsWith('.pdf')) return alert('Please select a PDF file.');
+                try {
+                    const text = await extractPdfText(file);
+                    parsedBankRows = parseBankStatementTransactions(text);
+                    activeBankFile = file.name;
+                    document.getElementById('bankPdfFileName').textContent = `Selected: ${file.name}`;
+                    document.getElementById('importBankBtn').disabled = parsedBankRows.length === 0;
+                    renderBankPreview();
+                    if (!parsedBankRows.length) alert('No transactions detected from PDF.');
+                } catch (e) { alert(`Failed to parse PDF: ${e.message}`); }
+                event.target.value = '';
+            };
+            document.getElementById('importBankBtn').onclick = importBankRowsToDatabase;
+            document.getElementById('bankMonth').onchange = filterBankHistory;
+            document.getElementById('bankSearch').onkeyup = filterBankHistory;
+            document.getElementById('bankClear').onclick = () => { document.getElementById('bankMonth').value = ''; document.getElementById('bankSearch').value = ''; filterBankHistory(); };
+            document.getElementById('bankExport').onclick = exportBankHistoryCsv;
+
+            renderBankPreview();
+            renderLatestRows('bank');
+            loadBankRows();
+        }
+        function renderBankPreview() {
+            const sec = document.getElementById('bankPreviewSec');
+            const body = document.getElementById('bankPreviewBody');
+            if (!sec || !body) return;
+            if (!parsedBankRows.length) { sec.style.display = 'none'; body.innerHTML = ''; return; }
+            body.innerHTML = parsedBankRows.map((r) => `<tr><td>${r.transactionDate}</td><td class="desc">${escapeHtml(r.description)}</td><td>${Number(r.amount).toFixed(2)}</td><td>${Number(r.balance).toFixed(2)}</td></tr>`).join('');
+            sec.style.display = 'block';
+        }
+        async function loadBankRows() {
+            try { bankRows = await getFromFirestore(COLLECTIONS.BANK_STATEMENTS); } catch { bankRows = JSON.parse(localStorage.getItem(COLLECTIONS.BANK_STATEMENTS) || '[]'); }
+            filterBankHistory();
+        }
+        function getFilteredBankRows() {
+            const month = document.getElementById('bankMonth')?.value || '';
+            const search = (document.getElementById('bankSearch')?.value || '').toLowerCase().trim();
+            return (bankRows || []).filter((r) => {
+                const mm = String(r.transactionDate || '').slice(0, 7);
+                if (month && mm !== month) return false;
+                if (!search) return true;
+                return [r.transactionDate, r.description, r.amount, r.sourceFileName].join(' ').toLowerCase().includes(search);
+            });
+        }
+        function filterBankHistory() {
+            const rows = getFilteredBankRows().sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+            const body = document.getElementById('bankHistoryBody');
+            if (!body) return;
+            body.innerHTML = rows.map((r) => `<tr><td>${formatDate(r.transactionDate)}</td><td class="desc">${escapeHtml(r.description || '-')}</td><td>${parseFloat(r.amount || 0).toFixed(2)}</td><td>${parseFloat(r.balance || 0).toFixed(2)}</td><td>${escapeHtml(r.sourceFileName || '-')}</td><td><button class="btn" data-del-bank="${r.id || ''}">Delete</button></td></tr>`).join('');
+            body.querySelectorAll('[data-del-bank]').forEach((btn) => btn.onclick = () => deleteBankRow(btn.getAttribute('data-del-bank')));
+            const totals = rows.reduce((acc, r) => { const a = parseFloat(r.amount || 0); if (a >= 0) acc.c += a; else acc.d += Math.abs(a); acc.n += a; return acc; }, { c:0, d:0, n:0 });
+            document.getElementById('bankCredits').textContent = totals.c.toFixed(2);
+            document.getElementById('bankDebits').textContent = totals.d.toFixed(2);
+            document.getElementById('bankNet').textContent = totals.n.toFixed(2);
+            document.getElementById('bankCount').textContent = String(rows.length);
+        }
+        async function deleteBankRow(id) {
+            if (!id) return;
+            if (!confirm('Delete this transaction?')) return;
+            try { await deleteFromFirestore(COLLECTIONS.BANK_STATEMENTS, id); } catch {}
+            bankRows = bankRows.filter((r) => r.id !== id);
+            localStorage.setItem(COLLECTIONS.BANK_STATEMENTS, JSON.stringify(bankRows));
+            filterBankHistory();
+        }
+        async function importBankRowsToDatabase() {
+            if (!parsedBankRows.length) return alert('Please parse a PDF first.');
+            if (!confirm(`Import ${parsedBankRows.length} row(s)?`)) return;
+            await loadBankRows();
+            let imported = 0, skipped = 0;
+            const results = [];
+            for (const row of parsedBankRows) {
+                const exists = bankRows.find((r) => r.transactionDate === row.transactionDate && String(r.description || '').trim().toLowerCase() === row.description.trim().toLowerCase() && Number(parseFloat(r.amount || 0).toFixed(2)) === Number(row.amount.toFixed(2)));
+                if (exists) { skipped++; results.push({ ...row, status:'skipped' }); continue; }
+                const payload = { ...row, amount:row.amount.toFixed(2), balance:row.balance.toFixed(2), sourceFileName:activeBankFile };
+                try {
+                    const id = await saveToFirestore(COLLECTIONS.BANK_STATEMENTS, payload);
+                    bankRows.push({ id, ...payload });
+                    results.push({ ...row, status:'imported' });
+                    imported++;
+                } catch {
+                    const local = { id:`local-bank-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...payload };
+                    bankRows.push(local); results.push({ ...row, status:'imported (local)' }); imported++;
+                }
+            }
+            latestBankRows = results;
+            localStorage.setItem(COLLECTIONS.BANK_STATEMENTS, JSON.stringify(bankRows));
+            renderLatestRows('bank');
+            filterBankHistory();
+            alert(`Import complete.\nImported: ${imported}\nSkipped: ${skipped}`);
+        }
+        function exportBankHistoryCsv() {
+            const rows = getFilteredBankRows();
+            if (!rows.length) return alert('No records to export.');
+            let csv = 'Transaction Date,Description,Amount,Balance,Source File\n';
+            rows.forEach((r) => { csv += `${r.transactionDate},"${String(r.description || '').replace(/"/g, '""')}",${parseFloat(r.amount || 0).toFixed(2)},${parseFloat(r.balance || 0).toFixed(2)},"${String(r.sourceFileName || '').replace(/"/g, '""')}"\n`; });
+            const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `bank_statement_history_${new Date().toISOString().split('T')[0]}.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+
+        function parseGrabRowsFromCsvText(csvText) {
+            const lines = String(csvText || '').split(/\r?\n/).filter(Boolean);
+            if (lines.length < 2) return [];
+            const headers = splitCsvLine(lines[0]).map((h) => h.toLowerCase());
+            const idx = { updatedOn:headers.indexOf('updated on'), transferDate:headers.indexOf('transfer date'), type:headers.indexOf('type'), category:headers.indexOf('category'), subcategory:headers.indexOf('subcategory'), status:headers.indexOf('status'), transactionId:headers.indexOf('transaction id'), shortOrderId:headers.indexOf('short order id'), orderChannel:headers.indexOf('order channel'), amount:headers.indexOf('amount'), description:headers.indexOf('description') };
+            if (idx.amount === -1 || idx.updatedOn === -1) return [];
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = splitCsvLine(lines[i]);
+                const amount = parseFloat(String(cols[idx.amount] || '').replace(/[^0-9.\-]/g, ''));
+                if (!Number.isFinite(amount)) continue;
+                const dateRaw = (idx.transferDate >= 0 ? cols[idx.transferDate] : '') || cols[idx.updatedOn] || '';
+                const transactionDate = normalizeDateInput(String(dateRaw).slice(0, 10)) || normalizeDateInput(dateRaw) || new Date().toISOString().split('T')[0];
+                const bits = [idx.type >= 0 ? cols[idx.type] : 'Grab', idx.category >= 0 ? cols[idx.category] : '', idx.subcategory >= 0 ? cols[idx.subcategory] : '', idx.status >= 0 && cols[idx.status] ? `Status: ${cols[idx.status]}` : '', idx.shortOrderId >= 0 && cols[idx.shortOrderId] ? `Order: ${cols[idx.shortOrderId]}` : '', idx.transactionId >= 0 && cols[idx.transactionId] ? `Txn: ${cols[idx.transactionId]}` : '', idx.orderChannel >= 0 && cols[idx.orderChannel] ? `Channel: ${cols[idx.orderChannel]}` : '', idx.description >= 0 && cols[idx.description] ? `Note: ${cols[idx.description]}` : ''].filter(Boolean);
+                rows.push({ transactionDate, description:bits.join(' | '), amount:Number(amount.toFixed(2)), balance:0, rawLine:lines[i] });
+            }
+            return rows;
+        }
+        function parseShopeeRowsFromSheetRows(rows, fallbackDate) {
+            if (!Array.isArray(rows) || rows.length < 2) return [];
+            const headers = rows[0].map((h) => String(h || '').trim().toLowerCase());
+            const idx = { sku:headers.findIndex((h) => h === 'sku'), name:headers.findIndex((h) => h === 'name'), category:headers.findIndex((h) => h === 'category'), gross:headers.findIndex((h) => h === 'gross sales'), net:headers.findIndex((h) => h === 'sales after discount'), qty:headers.findIndex((h) => h === 'qty') };
+            if (idx.name === -1 || (idx.net === -1 && idx.gross === -1)) return [];
+            const out = [];
+            for (let i = 1; i < rows.length; i++) {
+                const r = rows[i] || [];
+                const name = String(r[idx.name] ?? '').trim();
+                const amount = parseFloat(String((idx.net >= 0 ? r[idx.net] : r[idx.gross]) ?? '').replace(/[^0-9.\-]/g, ''));
+                if (!name || !Number.isFinite(amount)) continue;
+                const bits = [idx.sku >= 0 && r[idx.sku] ? `SKU: ${r[idx.sku]}` : '', idx.category >= 0 && r[idx.category] ? `Category: ${r[idx.category]}` : '', idx.qty >= 0 && r[idx.qty] ? `Qty: ${r[idx.qty]}` : ''].filter(Boolean);
+                out.push({ transactionDate:fallbackDate, description:`${name}${bits.length ? ` (${bits.join(' | ')})` : ''}`, amount:Number(amount.toFixed(2)), balance:0, rawLine:JSON.stringify(r) });
+            }
+            return out;
+        }
+        function extractDateFromImportFileName(fileName) {
+            const iso = String(fileName || '').match(/(\d{4}-\d{2}-\d{2})t/i); if (iso && iso[1]) return iso[1];
+            const plain = String(fileName || '').match(/(\d{4}-\d{2}-\d{2})/); if (plain && plain[1]) return plain[1];
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function renderCsvRoute(type) {
+            const cap = type === 'grab' ? 'Grab' : 'Shopee';
+            appRoot.innerHTML = `
+                <div class="section"><div class="section-header">${cap} CSV Import</div><div class="section-content">
+                    <div class="row"><button class="btn" id="${type}ChooseBtn">Choose ${cap} File</button><button class="btn" id="${type}ImportBtn" disabled>Import ${cap} Rows</button><input id="${type}Input" type="file" accept="${type === 'grab' ? '.csv,text/csv' : '.csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel'}" style="display:none;"><span id="${type}FileName" class="status"></span></div>
+                </div></div>
+                <div class="section" id="${type}PreviewSec" style="display:none;"><div class="section-header">${cap} Preview</div><div class="section-content table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Source</th></tr></thead><tbody id="${type}PreviewBody"></tbody></table></div></div>
+                <div class="section"><div class="section-header">${cap} History</div><div class="section-content">
+                    <div class="row"><input id="${type}Month" class="input" type="month"><input id="${type}Search" class="input" type="text" placeholder="Search..."><button class="btn" id="${type}Clear">Clear</button><button class="btn" id="${type}Export">Export CSV</button></div>
+                    <div class="kpi"><div>Credits: RM <b id="${type}Credits">0.00</b></div><div>Debits: RM <b id="${type}Debits">0.00</b></div><div>Net: RM <b id="${type}Net">0.00</b></div><div>Transactions: <b id="${type}Count">0</b></div></div>
+                    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Source</th><th>Action</th></tr></thead><tbody id="${type}HistoryBody"></tbody></table></div>
+                </div></div>
+                <div class="section" id="${type}LatestSec" style="display:none;"><div class="section-header">Latest Import</div><div class="section-content table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead><tbody id="${type}LatestBody"></tbody></table></div></div>
+            `;
+            const input = document.getElementById(`${type}Input`);
+            document.getElementById(`${type}ChooseBtn`).onclick = () => input.click();
+            document.getElementById(`${type}ImportBtn`).onclick = () => importCsvRows(type);
+            document.getElementById(`${type}Month`).onchange = () => filterCsvHistory(type);
+            document.getElementById(`${type}Search`).onkeyup = () => filterCsvHistory(type);
+            document.getElementById(`${type}Clear`).onclick = () => { document.getElementById(`${type}Month`).value = ''; document.getElementById(`${type}Search`).value = ''; filterCsvHistory(type); };
+            document.getElementById(`${type}Export`).onclick = () => exportCsvHistory(type);
+            input.onchange = (e) => handleCsvSelect(type, e);
+            renderCsvPreview(type);
+            renderLatestRows(type);
+            loadCsvRows(type);
+        }
+        function getCsvState(type) {
+            if (type === 'grab') return { parsed:parsedGrabRows, setParsed:(r) => parsedGrabRows = r, data:grabRows, setData:(r) => grabRows = r, latest:latestGrabRows, setLatest:(r) => latestGrabRows = r, active:activeGrabFile, setActive:(n) => activeGrabFile = n, collection:COLLECTIONS.GRAB_CSV_IMPORTS, cap:'Grab' };
+            return { parsed:parsedShopeeRows, setParsed:(r) => parsedShopeeRows = r, data:shopeeRows, setData:(r) => shopeeRows = r, latest:latestShopeeRows, setLatest:(r) => latestShopeeRows = r, active:activeShopeeFile, setActive:(n) => activeShopeeFile = n, collection:COLLECTIONS.SHOPEE_CSV_IMPORTS, cap:'Shopee' };
+        }
+        async function handleCsvSelect(type, event) {
+            const s = getCsvState(type); const file = event.target.files?.[0]; if (!file) return;
+            try {
+                let parsed = [];
+                if (type === 'grab') parsed = parseGrabRowsFromCsvText(await file.text());
+                else if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+                    const wb = window.XLSX.read(await file.arrayBuffer(), { type:'array' });
+                    parsed = parseShopeeRowsFromSheetRows(window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, raw:true }), extractDateFromImportFileName(file.name));
+                } else {
+                    const rows = String(await file.text()).split(/\r?\n/).map((l) => splitCsvLine(l)).filter((r) => r.length);
+                    parsed = parseShopeeRowsFromSheetRows(rows, extractDateFromImportFileName(file.name));
+                }
+                s.setParsed(parsed); s.setActive(file.name);
+                document.getElementById(`${type}FileName`).textContent = `Selected: ${file.name}`;
+                document.getElementById(`${type}ImportBtn`).disabled = parsed.length === 0;
+                renderCsvPreview(type);
+                if (!parsed.length) alert(`No ${s.cap} transactions detected.`);
+            } catch (e) { alert(`Failed to parse ${s.cap} file: ${e.message}`); }
+            event.target.value = '';
+        }
+        function renderCsvPreview(type) {
+            const s = getCsvState(type); const sec = document.getElementById(`${type}PreviewSec`); const body = document.getElementById(`${type}PreviewBody`);
+            if (!sec || !body) return;
+            if (!s.parsed.length) { sec.style.display = 'none'; body.innerHTML = ''; return; }
+            body.innerHTML = s.parsed.map((r) => `<tr><td>${r.transactionDate}</td><td class="desc">${escapeHtml(r.description)}</td><td>${Number(r.amount).toFixed(2)}</td><td>${s.cap}</td></tr>`).join('');
+            sec.style.display = 'block';
+        }
+        async function loadCsvRows(type) {
+            const s = getCsvState(type);
+            try { s.setData(await getFromFirestore(s.collection)); } catch { s.setData(JSON.parse(localStorage.getItem(s.collection) || '[]')); }
+            filterCsvHistory(type);
+        }
+        function getFilteredCsvRows(type) {
+            const s = getCsvState(type), month = document.getElementById(`${type}Month`)?.value || '', search = (document.getElementById(`${type}Search`)?.value || '').toLowerCase().trim();
+            return (s.data || []).filter((r) => {
+                if (month && String(r.transactionDate || '').slice(0, 7) !== month) return false;
+                if (!search) return true;
+                return [r.transactionDate, r.description, r.amount, r.sourceFileName].join(' ').toLowerCase().includes(search);
+            });
+        }
+        function filterCsvHistory(type) {
+            const s = getCsvState(type), rows = getFilteredCsvRows(type).sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+            const body = document.getElementById(`${type}HistoryBody`);
+            if (!body) return;
+            body.innerHTML = rows.map((r) => `<tr><td>${formatDate(r.transactionDate)}</td><td class="desc">${escapeHtml(r.description || '-')}</td><td>${parseFloat(r.amount || 0).toFixed(2)}</td><td>${escapeHtml(r.sourceFileName || '-')}</td><td><button class="btn" data-del="${r.id || ''}">Delete</button></td></tr>`).join('');
+            body.querySelectorAll('[data-del]').forEach((btn) => btn.onclick = () => deleteCsvRow(type, btn.getAttribute('data-del')));
+            const t = rows.reduce((acc, r) => { const a = parseFloat(r.amount || 0); if (a >= 0) acc.c += a; else acc.d += Math.abs(a); acc.n += a; return acc; }, { c:0, d:0, n:0 });
+            document.getElementById(`${type}Credits`).textContent = t.c.toFixed(2);
+            document.getElementById(`${type}Debits`).textContent = t.d.toFixed(2);
+            document.getElementById(`${type}Net`).textContent = t.n.toFixed(2);
+            document.getElementById(`${type}Count`).textContent = String(rows.length);
+        }
+        async function deleteCsvRow(type, id) {
+            const s = getCsvState(type); if (!id) return;
+            if (!confirm('Delete this transaction?')) return;
+            try { await deleteFromFirestore(s.collection, id); } catch {}
+            s.setData((s.data || []).filter((r) => r.id !== id));
+            localStorage.setItem(s.collection, JSON.stringify(s.data));
+            filterCsvHistory(type);
+        }
+        async function importCsvRows(type) {
+            const s = getCsvState(type);
+            if (!s.parsed.length) return alert(`Please parse a ${s.cap} file first.`);
+            if (!confirm(`Import ${s.parsed.length} ${s.cap} row(s)?`)) return;
+            await loadCsvRows(type);
+            let imported = 0, skipped = 0;
+            const results = [];
+            for (const row of s.parsed) {
+                const exists = (s.data || []).find((r) => r.transactionDate === row.transactionDate && String(r.description || '').trim().toLowerCase() === row.description.trim().toLowerCase() && Number(parseFloat(r.amount || 0).toFixed(2)) === Number(row.amount.toFixed(2)));
+                if (exists) { skipped++; results.push({ ...row, status:'skipped' }); continue; }
+                const payload = { ...row, amount:row.amount.toFixed(2), sourceFileName:s.active, importSource:type };
+                try { const id = await saveToFirestore(s.collection, payload); s.data.push({ id, ...payload }); results.push({ ...row, status:'imported' }); imported++; }
+                catch { s.data.push({ id:`local-${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...payload }); results.push({ ...row, status:'imported (local)' }); imported++; }
+            }
+            s.setLatest(results);
+            localStorage.setItem(s.collection, JSON.stringify(s.data));
+            renderLatestRows(type);
+            filterCsvHistory(type);
+            alert(`${s.cap} import complete.\nImported: ${imported}\nSkipped: ${skipped}`);
+        }
+        function exportCsvHistory(type) {
+            const s = getCsvState(type), rows = getFilteredCsvRows(type);
+            if (!rows.length) return alert(`No ${s.cap} records to export.`);
+            let csv = 'Transaction Date,Description,Amount,Source File\n';
+            rows.forEach((r) => { csv += `${r.transactionDate},"${String(r.description || '').replace(/"/g, '""')}",${parseFloat(r.amount || 0).toFixed(2)},"${String(r.sourceFileName || '').replace(/"/g, '""')}"\n`; });
+            const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${type}_csv_import_history_${new Date().toISOString().split('T')[0]}.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+        function renderLatestRows(type) {
+            const sec = document.getElementById(`${type}LatestSec`), body = document.getElementById(`${type}LatestBody`);
+            if (!sec || !body) return;
+            let rows = [];
+            if (type === 'bank') rows = latestBankRows;
+            if (type === 'grab') rows = latestGrabRows;
+            if (type === 'shopee') rows = latestShopeeRows;
+            if (!rows.length) { sec.style.display = 'none'; body.innerHTML = ''; return; }
+            body.innerHTML = rows.map((r) => `<tr><td>${r.transactionDate || '-'}</td><td class="desc">${escapeHtml(r.description || '-')}</td><td>${Number.isFinite(parseFloat(r.amount)) ? parseFloat(r.amount).toFixed(2) : '-'}</td><td class="status" style="color:${r.status?.includes('imported') ? 'var(--ok)' : r.status === 'skipped' ? 'var(--warn)' : 'var(--err)'};">${r.status || '-'}</td></tr>`).join('');
+            sec.style.display = 'block';
+        }
+
+        function navigate(route, updateHash) {
+            const safe = allowedRoutes.has(route) ? route : 'bank';
+            if (safe === 'bank') renderBank();
+            else renderCsvRoute(safe);
+            setActiveTab(safe);
+            if (updateHash) window.location.hash = '/' + safe;
+        }
+        tabs.forEach((t) => t.addEventListener('click', () => navigate(t.dataset.route, true)));
+        window.addEventListener('hashchange', () => navigate(getRoute(), false));
+        navigate(getRoute(), false);
+    </script>
+</body>
+</html>

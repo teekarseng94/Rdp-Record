@@ -2673,7 +2673,7 @@
                     <a href="#" class="nav-link" onclick="showCombinationReport(event)">Combination Report</a>
                 </li>
                 <li class="nav-item">
-                    <a href="#/pdfimport" class="nav-link" id="navPdfImport" onclick="showCsvImport(event)">PDF Import</a>
+                    <a href="./pdf-import.html" class="nav-link" id="navPdfImport">PDF Import</a>
                 </li>
                 <li class="nav-item dropdown">
                     <a href="#" class="nav-link">Settings</a>
@@ -5333,19 +5333,32 @@
             if (!mainApp || mainApp.style.display === 'none') return;
 
             const route = normalizeAppHashRoute();
+            const isTopLevelWindow = window.top === window.self;
             if (route === 'morningreport') {
                 navigateToMorningReportsScreen({ fromHash: true });
                 return;
             }
             if (route === 'pdfimport-bank') {
+                if (isTopLevelWindow) {
+                    window.location.href = './pdf-import.html#/bank';
+                    return;
+                }
                 navigateToPdfImportScreen({ fromHash: true, subRoute: 'bank' });
                 return;
             }
             if (route === 'pdfimport-grab') {
+                if (isTopLevelWindow) {
+                    window.location.href = './pdf-import.html#/grab';
+                    return;
+                }
                 navigateToPdfImportScreen({ fromHash: true, subRoute: 'grab' });
                 return;
             }
             if (route === 'pdfimport-shopee') {
+                if (isTopLevelWindow) {
+                    window.location.href = './pdf-import.html#/shopee';
+                    return;
+                }
                 navigateToPdfImportScreen({ fromHash: true, subRoute: 'shopee' });
                 return;
             }
@@ -5406,7 +5419,7 @@
 
         function showCsvImport(event) {
             if (event) event.preventDefault();
-            navigateToPdfImportScreen({ fromHash: false });
+            window.location.href = './pdf-import.html#/bank';
         }
 
         function showExpenseSettings(event) {
